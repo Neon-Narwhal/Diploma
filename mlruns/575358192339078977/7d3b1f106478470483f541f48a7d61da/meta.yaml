@@ -1,0 +1,14 @@
+artifact_uri: file:///home/neonnarwhal/projects/Diploma/mlruns/575358192339078977/7d3b1f106478470483f541f48a7d61da/artifacts
+end_time: 1758816043682
+entry_point_name: ''
+experiment_id: '575358192339078977'
+lifecycle_stage: active
+run_id: 7d3b1f106478470483f541f48a7d61da
+run_name: bpe_vocab_300
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1758815923231
+status: 4
+tags: []
+user_id: neonnarwhal
