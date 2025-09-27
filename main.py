@@ -15,6 +15,7 @@ from my_tokenizers.bpe_tokenizer import BPETokenizer
 from utils.logging import GenerationLogger
 from utils.data_utils import load_data, prepare_data
 
+from training.transformer_squared_training import run_quick_test, run_laptop_test
 from training.trainer import ModelTrainer, AdvancedModelTrainer
 from experiments.mlflow_experiments import ExperimentRunner, run_single_experiment
 
@@ -174,4 +175,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    #run_quick_test() ## sakana
+    run_laptop_test()

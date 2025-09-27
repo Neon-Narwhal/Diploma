@@ -1,0 +1,10 @@
+artifact_location: file:///home/neonnarwhal/projects/Diploma/mlruns/716714020684800226/models/m-8fc5a1b520a245349333837bc9369319/artifacts
+creation_timestamp: 1758995252881
+experiment_id: '716714020684800226'
+last_updated_timestamp: 1758995256152
+model_id: m-8fc5a1b520a245349333837bc9369319
+model_type: null
+name: model
+source_run_id: 3116f636e1b945169a3607705103aaa1
+status: 2
+status_message: null

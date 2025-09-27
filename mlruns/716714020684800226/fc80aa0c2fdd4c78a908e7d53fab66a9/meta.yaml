@@ -1,0 +1,14 @@
+artifact_uri: file:///home/neonnarwhal/projects/Diploma/mlruns/716714020684800226/fc80aa0c2fdd4c78a908e7d53fab66a9/artifacts
+end_time: 1758997876594
+entry_point_name: ''
+experiment_id: '716714020684800226'
+lifecycle_stage: active
+run_id: fc80aa0c2fdd4c78a908e7d53fab66a9
+run_name: transformer_squared_baseline
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1758997297995
+status: 3
+tags: []
+user_id: neonnarwhal

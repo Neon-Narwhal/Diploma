@@ -1,0 +1,8 @@
+artifact_location: file:///home/neonnarwhal/projects/Diploma/mlruns/880634105349955428
+creation_time: 1758990218548
+experiment_id: '880634105349955428'
+last_update_time: 1758996098735
+lifecycle_stage: deleted
+name: transformer_squared_vs_original
+tags:
+  mlflow.experimentKind: custom_model_development

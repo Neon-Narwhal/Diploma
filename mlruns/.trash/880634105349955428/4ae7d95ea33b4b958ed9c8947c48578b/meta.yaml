@@ -1,0 +1,15 @@
+artifact_uri: file:///home/neonnarwhal/projects/Diploma/mlruns/880634105349955428/4ae7d95ea33b4b958ed9c8947c48578b/artifacts
+deleted_time: 1758992063421
+end_time: 1758992029389
+entry_point_name: ''
+experiment_id: '880634105349955428'
+lifecycle_stage: deleted
+run_id: 4ae7d95ea33b4b958ed9c8947c48578b
+run_name: complexity_fine_tuning
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1758991949869
+status: 4
+tags: []
+user_id: neonnarwhal

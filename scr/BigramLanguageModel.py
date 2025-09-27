@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from pathlib import Path
-from tokenizers import Tokenizer, models, trainers, pre_tokenizers
+from my_tokenizers import Tokenizer, models, trainers, pre_tokenizers
 import mlflow
 import mlflow.pytorch
 from dataclasses import dataclass, asdict

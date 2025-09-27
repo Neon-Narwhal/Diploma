@@ -3,6 +3,7 @@
 import torch
 from typing import Tuple
 from utils.config import ModelConfig
+import json
 
 
 def load_data(file_path: str) -> str:
@@ -10,10 +11,25 @@ def load_data(file_path: str) -> str:
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             return f.read()
+
     except FileNotFoundError:
         print(f"Файл {file_path} не найден. Используем тестовые данные.")
         return "Hello world! This is a test dataset for training language models. " * 100
-
+    
+def load_data_json(file_path: str) -> list:
+    """Загрузка данных из файла форматом jsonl"""
+    datas = []
+    # Чтение JSONL файла построчно
+    with open(file_path, 'r', encoding='utf-8') as file:
+        for line in file:
+            # Парсинг каждой строки как JSON-объект
+            try:
+                datas.append(json.loads(line.strip()))
+            except json.JSONDecodeError as e:
+                print(f"Ошибка парсинга строки: {line}")
+                print(e)
+    return datas
+    
 
 def get_batch(data: torch.Tensor, config: ModelConfig, split: str = "train") -> Tuple[torch.Tensor, torch.Tensor]:
     """Получение батча для обучения"""
@@ -27,7 +43,7 @@ def get_batch(data: torch.Tensor, config: ModelConfig, split: str = "train") -> 
     return x, y
 
 
-def prepare_data(text: str, tokenizer, config: ModelConfig) -> torch.Tensor:
+def prepare_data(text: str, tokenizer, config: ModelConfig, split_flag: bool = False) -> torch.Tensor:
     """
     Подготовка данных для обучения
     
@@ -43,6 +59,7 @@ def prepare_data(text: str, tokenizer, config: ModelConfig) -> torch.Tensor:
     encoded_data = tokenizer.encode(text)
     data_tensor = torch.tensor(encoded_data, dtype=torch.long)
     
+
     print(f"📊 Подготовлены данные:")
     print(f"   - Исходный текст: {len(text):,} символов")  
     print(f"   - Токенов: {len(encoded_data):,}")
@@ -50,4 +67,13 @@ def prepare_data(text: str, tokenizer, config: ModelConfig) -> torch.Tensor:
     print(f"   - Устройство: {config.device}")
     print(f"   - Эффективность токенизации: {len(encoded_data)/len(text):.3f} токенов/символ")
     
-    return data_tensor
+    if split_flag:
+        n = int(config.train_val_split * len(data_tensor))
+        return data_tensor[:n], data_tensor[n:]  
+    
+    return data_tensor   
+
+def split_data(data: torch.Tensor, train_val_split: float) -> tuple[torch.Tensor, torch.Tensor]:
+    n = int(train_val_split * len(data))
+    return data[:n], data[n:]
+
