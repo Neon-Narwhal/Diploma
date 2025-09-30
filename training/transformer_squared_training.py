@@ -19,7 +19,7 @@ from utils.data_utils import load_data, prepare_data, get_batch, split_data
 from my_tokenizers.char_tokenizer import CharTokenizer
 from my_tokenizers.bpe_tokenizer import BPETokenizer
 from utils.config import ModelConfig
-from models.transformer_squared_model import TransformerSquared, create_model
+from models.transformer_squared_model import TransformerSquared
 
 class LanguageModelingDataset(Dataset):
     """Custom dataset for language modeling task"""

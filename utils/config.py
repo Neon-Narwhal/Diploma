@@ -17,9 +17,9 @@ class ModelConfig:
     learning_rate: float = 3e-4
     device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
     eval_iters: int = 200
-    n_embd: int = 384
     n_layer: int = 6
-    n_head: int = 6
+    n_head: int = 4
+    n_embd: int = 256
     epoch_count: int = 1
     overfit_line: float = 0.05
     dropout: float = 0.1

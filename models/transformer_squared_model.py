@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from typing import Optional, Dict, Any, List, Tuple
+from metods.rope import RotaryPositionalEmbedding
 
 class SVFLinear(nn.Module):
     """Singular Value Fine-tuning Linear Layer"""
@@ -77,12 +78,13 @@ class StandardLinear(nn.Module):
         pass
 
 class AdaptiveAttentionHead(nn.Module):
-    """Configurable attention head with optional SVF"""
+    """Configurable attention head с RoPE поддержкой"""
 
-    def __init__(self, head_size: int, config):
+    def __init__(self, head_size: int, config, rope: Optional[RotaryPositionalEmbedding] = None):
         super().__init__()
         self.head_size = head_size
         self.config = config
+        self.rope = rope  # Добавляем RoPE
 
         # Choose linear layer type based on config
         linear_cls = SVFLinear if config.use_svf else StandardLinear
@@ -98,9 +100,14 @@ class AdaptiveAttentionHead(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         B, T, C = x.shape
 
-        k = self.key(x)
-        q = self.query(x)
-        v = self.value(x)
+        k = self.key(x)    # [B, T, head_size]
+        q = self.query(x)  # [B, T, head_size]
+        v = self.value(x)  # [B, T, head_size]
+
+        # Применяем RoPE к query и key (НЕ к value!)
+        if self.rope is not None:
+            q = self.rope(q, T)
+            k = self.rope(k, T)
 
         # Scaled dot-product attention
         wei = q @ k.transpose(-2, -1) * (self.head_size ** -0.5)
@@ -111,10 +118,11 @@ class AdaptiveAttentionHead(nn.Module):
         out = wei @ v
         return out
 
-class AdaptiveMultiHeadAttention(nn.Module):
-    """Multi-head attention with configurable components"""
 
-    def __init__(self, config):
+class AdaptiveMultiHeadAttention(nn.Module):
+    """Multi-head attention с RoPE"""
+
+    def __init__(self, config, rope: Optional[RotaryPositionalEmbedding] = None):
         super().__init__()
         assert config.n_embd % config.n_head == 0
 
@@ -122,7 +130,7 @@ class AdaptiveMultiHeadAttention(nn.Module):
         head_size = config.n_embd // config.n_head
 
         self.heads = nn.ModuleList([
-            AdaptiveAttentionHead(head_size, config) for _ in range(config.n_head)
+            AdaptiveAttentionHead(head_size, config, rope) for _ in range(config.n_head)
         ])
 
         # Output projection
@@ -135,6 +143,7 @@ class AdaptiveMultiHeadAttention(nn.Module):
         out = self.proj(out)
         out = self.dropout(out)
         return out
+
 
 class AdaptiveFeedForward(nn.Module):
     """Feed-forward network with configurable expansion and components"""
@@ -157,9 +166,9 @@ class AdaptiveFeedForward(nn.Module):
         return self.net(x)
 
 class TransformerSquaredBlock(nn.Module):
-    """Transformer block with configurable architecture"""
+    """Transformer block с RoPE поддержкой"""
 
-    def __init__(self, config):
+    def __init__(self, config, rope: Optional[RotaryPositionalEmbedding] = None):
         super().__init__()
         self.config = config
 
@@ -167,20 +176,19 @@ class TransformerSquaredBlock(nn.Module):
         self.ln1 = nn.LayerNorm(config.n_embd)
         self.ln2 = nn.LayerNorm(config.n_embd)
 
-        # Attention and feed-forward
-        self.sa = AdaptiveMultiHeadAttention(config)
+        # Attention и feed-forward с RoPE
+        self.sa = AdaptiveMultiHeadAttention(config, rope)
         self.ffwd = AdaptiveFeedForward(config)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.config.use_pre_norm:
-            # Pre-norm (more stable)
             x = x + self.sa(self.ln1(x))
             x = x + self.ffwd(self.ln2(x))
         else:
-            # Post-norm (original transformer)
             x = self.ln1(x + self.sa(x))
             x = self.ln2(x + self.ffwd(x))
         return x
+
 
 class TaskDetector(nn.Module):
     """Configurable task detection module"""
@@ -232,56 +240,71 @@ class ExpertVectorManager(nn.Module):
 
 class TransformerSquared(nn.Module):
     """
-    Universal Transformer model with optional Sakana AI innovations
-    Works with standard transformer config or enhanced Transformer² features
-    All controlled by single universal ModelConfig
+    Universal Transformer² модель с полной поддержкой RoPE
+    Работает как стандартный трансформер или с расширенными возможностями
+    Все контролируется универсальным ModelConfig
     """
 
     def __init__(self, config):
         super().__init__()
         self.config = config
 
-        # Validate configuration
+        # Валидация конфигурации
         config.validate()
 
-        # Embeddings
+        # Embeddings - токенные эмбеддинги всегда нужны
         self.token_embedding_table = nn.Embedding(config.vocab_size, config.n_embd)
-        self.position_embedding_table = nn.Embedding(config.block_size, config.n_embd)
+        
+        # Создаем RoPE если включен в конфиге, иначе используем стандартные позиционные эмбеддинги
+        self.rope = None
+        if getattr(config, 'use_rope', False):
+            head_dim = config.n_embd // config.n_head
+            self.rope = RotaryPositionalEmbedding(
+                dim=head_dim,
+                max_seq_len=config.block_size,
+                base=getattr(config, 'rope_base', 10000.0)
+            )
+            # Не создаем позиционные эмбеддинги при использовании RoPE
+            self.position_embedding_table = None
+        else:
+            # Стандартные позиционные эмбеддинги
+            self.position_embedding_table = nn.Embedding(config.block_size, config.n_embd)
 
-        # Transformer blocks
+        # Transformer блоки с передачей RoPE
         self.blocks = nn.ModuleList([
-            TransformerSquaredBlock(config) for _ in range(config.n_layer)
+            TransformerSquaredBlock(config, self.rope) for _ in range(config.n_layer)
         ])
 
-        # Final layer norm
+        # Финальная layer norm
         self.ln_f = nn.LayerNorm(config.n_embd)
 
-        # Task-specific heads
+        # Task-specific головы
         self.lm_head = StandardLinear(config.n_embd, config.vocab_size, config, bias=False)
 
-        # Optional complexity analysis head
+        # Опциональная голова для анализа сложности
         self.complexity_head = None
         if config.enable_complexity_head:
             self.complexity_head = StandardLinear(config.n_embd, config.num_complexity_classes, config)
 
-        # Optional task detector
+        # Опциональный детектор задач
         self.task_detector = None
         if config.enable_task_detector:
             self.task_detector = TaskDetector(config)
 
-        # Expert vector manager (always created, but only used if SVF is enabled)
+        # Менеджер экспертных векторов (всегда создается, но используется только если SVF включен)
         self.expert_manager = ExpertVectorManager(config)
 
-        # Current task state
+        # Текущее состояние задачи
         self.current_task = 'language_modeling'
 
         self._init_weights()
 
     def _init_weights(self):
-        """Initialize all model weights according to config"""
-        # Embeddings
+        """Инициализация всех весов модели согласно конфигу"""
+        # Эмбеддинги
         nn.init.normal_(self.token_embedding_table.weight, std=self.config.embedding_init_std)
-        nn.init.normal_(self.position_embedding_table.weight, std=self.config.embedding_init_std)
+        if self.position_embedding_table is not None:
+            nn.init.normal_(self.position_embedding_table.weight, std=self.config.embedding_init_std)
 
         # Layer norms
         for module in self.modules():
@@ -290,32 +313,32 @@ class TransformerSquared(nn.Module):
                 nn.init.ones_(module.weight)
 
     def set_task_mode(self, task_type: str):
-        """Set current task and update expert vectors accordingly"""
+        """Устанавливает текущую задачу и обновляет экспертные векторы соответственно"""
         available_tasks = self.expert_manager.get_available_tasks()
         if task_type not in available_tasks:
-            raise ValueError(f"Task '{task_type}' not available. Available tasks: {available_tasks}")
+            raise ValueError(f"Задача '{task_type}' недоступна. Доступные задачи: {available_tasks}")
 
         self.current_task = task_type
 
-        # Update expert vectors only if SVF is enabled
+        # Обновляем экспертные векторы только если SVF включен
         if self.config.use_svf:
             self._update_expert_vectors(task_type)
 
     def _update_expert_vectors(self, task_type: str):
-        """Update expert vectors in all adaptive components"""
+        """Обновляет экспертные векторы во всех адаптивных компонентах"""
         for layer_idx, block in enumerate(self.blocks):
             expert_vector = self.expert_manager.get_expert_vector(task_type, layer_idx)
 
-            # Update attention heads
+            # Обновляем головы внимания
             for head in block.sa.heads:
                 head.key.set_expert_vector(expert_vector)
                 head.query.set_expert_vector(expert_vector)
                 head.value.set_expert_vector(expert_vector)
 
-            # Update projection
+            # Обновляем проекцию
             block.sa.proj.set_expert_vector(expert_vector)
 
-            # Update feed-forward layers
+            # Обновляем feed-forward слои
             if hasattr(block.ffwd.net[0], 'set_expert_vector'):
                 block.ffwd.net[0].set_expert_vector(expert_vector)
             if hasattr(block.ffwd.net[2], 'set_expert_vector'):
@@ -323,37 +346,43 @@ class TransformerSquared(nn.Module):
 
     def forward(self, idx: torch.Tensor, targets: Optional[torch.Tensor] = None, 
                 task_type: Optional[str] = None) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        """Forward pass with configurable task handling"""
+        """Forward pass с конфигурируемой обработкой задач"""
 
-        # Set task mode if specified
+        # Устанавливаем режим задачи если указан
         if task_type is not None and task_type != self.current_task:
             self.set_task_mode(task_type)
 
         B, T = idx.shape
         device = idx.device
 
-        # Embeddings
+        # Эмбеддинги
         tok_emb = self.token_embedding_table(idx)
-        pos_emb = self.position_embedding_table(torch.arange(T, device=device))
-        x = tok_emb + pos_emb
+        
+        if self.rope is not None:
+            # Используем только токенные эмбеддинги, RoPE применится в attention
+            x = tok_emb
+        else:
+            # Стандартный путь с позиционными эмбеддингами
+            pos_emb = self.position_embedding_table(torch.arange(T, device=device))
+            x = tok_emb + pos_emb
 
-        # Transformer blocks
+        # Transformer блоки
         for block in self.blocks:
             x = block(x)
 
         x = self.ln_f(x)
 
-        # Task-specific output
+        # Task-specific выход
         if (self.current_task == 'complexity_analysis' and 
             self.complexity_head is not None):
-            # Global pooling for classification
+            # Глобальный pooling для классификации
             pooled = x.mean(dim=1)
             logits = self.complexity_head(pooled)
         else:
-            # Language modeling (token-level)
+            # Языковое моделирование (token-level)
             logits = self.lm_head(x)
 
-        # Calculate loss if targets provided
+        # Вычисляем loss если targets предоставлены
         loss = None
         if targets is not None:
             if self.current_task == 'complexity_analysis':
@@ -368,11 +397,11 @@ class TransformerSquared(nn.Module):
 
     def generate(self, idx: torch.Tensor, max_new_tokens: Optional[int] = None, 
                  temperature: Optional[float] = None) -> torch.Tensor:
-        """Generate new tokens using config parameters"""
+        """Генерация новых токенов используя параметры конфига"""
         max_new_tokens = max_new_tokens or self.config.max_generation_length
         temperature = temperature or self.config.generation_temperature
 
-        # Ensure we're in language modeling mode
+        # Убеждаемся что мы в режиме языкового моделирования
         original_task = self.current_task
         if 'language_modeling' in self.expert_manager.get_available_tasks():
             self.set_task_mode('language_modeling')
@@ -380,6 +409,7 @@ class TransformerSquared(nn.Module):
         self.eval()
         with torch.no_grad():
             for _ in range(max_new_tokens):
+                # Обрезаем контекст до block_size
                 idx_cond = idx[:, -self.config.block_size:]
                 logits, _ = self(idx_cond)
                 logits = logits[:, -1, :] / temperature
@@ -387,25 +417,29 @@ class TransformerSquared(nn.Module):
                 idx_next = torch.multinomial(probs, num_samples=1)
                 idx = torch.cat((idx, idx_next), dim=1)
 
-        # Restore original task
+        # Восстанавливаем оригинальную задачу
         if original_task != self.current_task:
             self.set_task_mode(original_task)
 
         return idx
 
     def detect_task(self, idx: torch.Tensor) -> str:
-        """Detect task type from input (if task detector enabled)"""
+        """Определяет тип задачи из входа (если детектор задач включен)"""
         if self.task_detector is None:
             return self.current_task
 
         self.eval()
         with torch.no_grad():
-            # Quick pass through embeddings and first block
+            # Быстрый проход через эмбеддинги и первый блок
             tok_emb = self.token_embedding_table(idx)
-            pos_emb = self.position_embedding_table(torch.arange(idx.size(1), device=idx.device))
-            x = tok_emb + pos_emb
+            
+            if self.rope is not None:
+                x = tok_emb
+            else:
+                pos_emb = self.position_embedding_table(torch.arange(idx.size(1), device=idx.device))
+                x = tok_emb + pos_emb
 
-            # Partial forward pass
+            # Частичный forward pass
             x = self.blocks[0](x)
 
             task_logits = self.task_detector(x)
@@ -415,72 +449,119 @@ class TransformerSquared(nn.Module):
             return available_tasks[task_id.item() % len(available_tasks)]
 
     def get_model_info(self) -> Dict[str, Any]:
-        """Get comprehensive model information"""
+        """Получает исчерпывающую информацию о модели"""
         total_params = sum(p.numel() for p in self.parameters())
         trainable_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
 
         svf_params = 0
         standard_params = 0
+        rope_params = 0
+        
         for module in self.modules():
             if isinstance(module, SVFLinear):
                 svf_params += sum(p.numel() for p in module.parameters())
             elif isinstance(module, StandardLinear):
                 standard_params += sum(p.numel() for p in module.parameters())
+            elif isinstance(module, RotaryPositionalEmbedding):
+                rope_params += sum(p.numel() for p in module.parameters() if p.requires_grad)
 
         return {
             'total_parameters': total_params,
             'trainable_parameters': trainable_params,
             'svf_parameters': svf_params,
             'standard_parameters': standard_params,
+            'rope_parameters': rope_params,
             'available_tasks': self.expert_manager.get_available_tasks(),
             'current_task': self.current_task,
             'model_type': 'Transformer²' if self.config.use_transformer_squared else 'Standard Transformer',
             'supports_complexity_analysis': self.complexity_head is not None,
             'supports_task_detection': self.task_detector is not None,
             'use_svf': self.config.use_svf,
+            'use_rope': self.rope is not None,
+            'rope_enabled': getattr(self.config, 'use_rope', False),
+            'rope_base': getattr(self.config, 'rope_base', 10000.0),
             'model_name': self.config.model_name,
             'config_info': self.config.get_model_info()
         }
 
     def is_transformer_squared(self) -> bool:
-        """Check if model is using Transformer² features"""
+        """Проверяет использует ли модель возможности Transformer²"""
         return (self.config.use_transformer_squared and 
                 (self.config.use_svf or 
                  self.complexity_head is not None or 
-                 self.task_detector is not None))
+                 self.task_detector is not None or
+                 self.rope is not None))
 
     def get_available_tasks(self) -> List[str]:
-        """Get list of available tasks"""
+        """Получает список доступных задач"""
         return self.expert_manager.get_available_tasks()
 
-# Factory function for easy model creation
-def create_model(config_type: str = "standard", **kwargs):
-    """
-    Factory function to create models with different configurations
+    def get_rope_info(self) -> Dict[str, Any]:
+        """Получает информацию о RoPE если включен"""
+        if self.rope is None:
+            return {'enabled': False}
+        
+        return {
+            'enabled': True,
+            'dim': self.rope.dim,
+            'max_seq_len': self.rope.max_seq_len,
+            'base': self.rope.base,
+            'cached_positions': self.rope.cos_cached.size(0) if hasattr(self.rope, 'cos_cached') else 0
+        }
 
-    Args:
-        config_type: 'standard', 'transformer_squared', 'code_analysis', 'small', 'large'
-        **kwargs: Additional config overrides
-    """
-    # Import here to avoid circular dependency
-    from utils.config import ModelConfig, create_config_for_task
+    def switch_to_rope(self, base: float = 10000.0):
+        """Динамически переключается на использование RoPE"""
+        if self.rope is not None:
+            print("RoPE уже включен")
+            return
+        
+        # Создаем RoPE
+        head_dim = self.config.n_embd // self.config.n_head
+        self.rope = RotaryPositionalEmbedding(
+            dim=head_dim,
+            max_seq_len=self.config.block_size,
+            base=base
+        ).to(next(self.parameters()).device)
+        
+        # Обновляем блоки для использования RoPE
+        for block in self.blocks:
+            block.sa.rope = self.rope
+            for head in block.sa.heads:
+                head.rope = self.rope
+        
+        # Удаляем позиционные эмбеддинги (опционально)
+        # self.position_embedding_table = None
+        
+        # Обновляем конфиг
+        self.config.use_rope = True
+        self.config.rope_base = base
+        
+        print(f"RoPE включен с base={base}")
 
-    if config_type == "standard":
-        config = ModelConfig.get_standard_config()
-    elif config_type == "transformer_squared":
-        config = ModelConfig.get_comparison_config()
-    elif config_type == "code_analysis":
-        config = ModelConfig.get_code_analysis_config()
-    elif config_type == "small":
-        config = ModelConfig.get_small_research_config()
-    elif config_type == "large":
-        config = ModelConfig.get_large_production_config()
-    else:
-        # Default to medium transformer_squared
-        config = ModelConfig()
-        config.enable_transformer_squared_features()
-
-    # Apply any overrides
-    config.update_from_dict(kwargs)
-
-    return TransformerSquared(config)
+    def switch_to_standard_pe(self):
+        """Переключается обратно на стандартные позиционные эмбеддинги"""
+        if self.rope is None:
+            print("RoPE не включен")
+            return
+        
+        # Удаляем RoPE из блоков
+        for block in self.blocks:
+            block.sa.rope = None
+            for head in block.sa.heads:
+                head.rope = None
+        
+        # Создаем позиционные эмбеддинги если их нет
+        if self.position_embedding_table is None:
+            self.position_embedding_table = nn.Embedding(
+                self.config.block_size, 
+                self.config.n_embd
+            ).to(next(self.parameters()).device)
+            nn.init.normal_(self.position_embedding_table.weight, std=self.config.embedding_init_std)
+        
+        # Удаляем RoPE
+        self.rope = None
+        
+        # Обновляем конфиг
+        self.config.use_rope = False
+        
+        print("Переключено на стандартные позиционные эмбеддинги")

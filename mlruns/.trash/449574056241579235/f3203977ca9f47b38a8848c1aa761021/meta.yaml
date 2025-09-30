@@ -1,0 +1,15 @@
+artifact_uri: file:///home/neonnarwhal/projects/Diploma/mlruns/449574056241579235/f3203977ca9f47b38a8848c1aa761021/artifacts
+deleted_time: 1759165961694
+end_time: 1759163418395
+entry_point_name: ''
+experiment_id: '449574056241579235'
+lifecycle_stage: deleted
+run_id: f3203977ca9f47b38a8848c1aa761021
+run_name: advanced_demo_run
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1759163417113
+status: 4
+tags: []
+user_id: neonnarwhal

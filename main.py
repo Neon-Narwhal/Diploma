@@ -113,12 +113,13 @@ def demo_advanced_mlflow_training():
 
 
     # Создаем продвинутый experiment runner
-    runner = ExperimentRunner(experiment_name="advanced_main_demo")
+    runner = ExperimentRunner(experiment_name="test_rope_model")
 
     # Кастомная конфигурация
     config = ModelConfig(
         tokenizer_type='char',
-        model_name="advanced_demo_model"
+        max_iters=1000,
+        model_name="transformer_rope_model"
     )
 
 
@@ -175,6 +176,7 @@ def main():
 
 
 if __name__ == "__main__":
-    # main()
-    #run_quick_test() ## sakana
-    run_laptop_test()
+    torch.cuda.empty_cache()
+    #main()
+    run_quick_test() ## sakana
+    #run_laptop_test()
