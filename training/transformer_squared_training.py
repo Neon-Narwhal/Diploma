@@ -46,6 +46,20 @@ class UniversalTransformerTrainer:
         self.config = config
         self.experiment_name = experiment_name
         mlflow.set_experiment(experiment_name)
+        
+        # Настройка AMP
+        self.use_amp = getattr(config, 'use_amp', False)
+        self.amp_dtype = getattr(config, 'amp_dtype', torch.float32)
+        
+        # Определяем device type для autocast
+        self.device_type = 'cuda' if 'cuda' in str(config.device) else 'cpu'
+        
+        # GradScaler ТОЛЬКО для float16, НЕ для bfloat16!
+        # bfloat16 имеет такой же диапазон как float32 и не нуждается в масштабировании
+        self.use_scaler = self.use_amp and self.amp_dtype == torch.float16
+        self.scaler = torch.amp.GradScaler(enabled=self.use_scaler)
+        
+        print(f"AMP Config: use_amp={self.use_amp}, dtype={self.amp_dtype}, use_scaler={self.use_scaler}")
 
     def create_dataloader(self, data: torch.Tensor, batch_size: Optional[int] = None, 
                          shuffle: bool = True) -> DataLoader:
@@ -78,31 +92,43 @@ class UniversalTransformerTrainer:
 
     def train_step(self, model: TransformerSquared, batch: torch.Tensor, targets: torch.Tensor, 
                    optimizer: torch.optim.Optimizer, task_type: str = 'language_modeling') -> float:
-        """Single training step"""
+        """Single training step с AMP поддержкой"""
         model.train()
         optimizer.zero_grad()
 
-        logits, loss = model(batch, targets, task_type=task_type)
-        loss.backward()
+        # Автоматическая смешанная точность
+        with torch.amp.autocast(device_type=self.device_type, dtype=self.amp_dtype, enabled=self.use_amp):
+            logits, loss = model(batch, targets, task_type=task_type)
 
-        # Gradient clipping
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        # Backward с optional scaling (только для float16)
+        if self.use_scaler:
+            # Путь для float16 со scaling
+            self.scaler.scale(loss).backward()
+            self.scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            self.scaler.step(optimizer)
+            self.scaler.update()
+        else:
+            # Путь для bfloat16 или без AMP - без scaling
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            optimizer.step()
 
-        optimizer.step()
         return loss.item()
 
     def evaluate_model(self, model: TransformerSquared, val_dataloader: DataLoader, 
                       task_type: str = 'language_modeling') -> Dict[str, float]:
-        """Evaluate model on validation data using DataLoader"""
+        """Evaluate model с AMP поддержкой"""
         model.eval()
         eval_losses = []
 
         with torch.no_grad():
-            for batch, targets in val_dataloader:
-                # Data is already on correct device thanks to collate_fn
-                _, loss = model(batch, targets, task_type=task_type)
-                if loss is not None:
-                    eval_losses.append(loss.item())
+            # Используем AMP для evaluation
+            with torch.amp.autocast(device_type=self.device_type, dtype=self.amp_dtype, enabled=self.use_amp):
+                for batch, targets in val_dataloader:
+                    _, loss = model(batch, targets, task_type=task_type)
+                    if loss is not None:
+                        eval_losses.append(loss.item())
 
         avg_loss = sum(eval_losses) / len(eval_losses) if eval_losses else 0.0
         return {
@@ -113,18 +139,21 @@ class UniversalTransformerTrainer:
     def run_training(self, train_data: torch.Tensor, val_data: Optional[torch.Tensor] = None, 
                     max_iters: Optional[int] = None, eval_interval: Optional[int] = None, 
                     learning_rate: Optional[float] = None, run_name: Optional[str] = None) -> TransformerSquared:
-        """
-        Main training loop with MLflow logging and DataLoader
-        Uses config parameters by default, allows overrides
-        """
-
-        # Use config parameters with optional overrides
+        """Main training loop с AMP"""
+        
         max_iters = max_iters or self.config.max_iters
         eval_interval = eval_interval or self.config.eval_interval
         learning_rate = learning_rate or self.config.learning_rate
 
-        # Create model using unified config
-        model = TransformerSquared(self.config).to(self.config.device)
+        # Создаем модель и конвертируем в нужный dtype
+        model = TransformerSquared(self.config)
+        
+        # Конвертируем модель в model_dtype если указан
+        if hasattr(self.config, 'model_dtype'):
+            model = model.to(dtype=self.config.model_dtype)
+        
+        model = model.to(self.config.device)
+        
         optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
         # Create DataLoaders
@@ -133,22 +162,22 @@ class UniversalTransformerTrainer:
         if val_data is not None:
             val_dataloader = self.create_dataloader(val_data, shuffle=False)
 
-        # MLflow run
         with mlflow.start_run(run_name=run_name):
-            # Log configuration - convert to dict for MLflow
+            # Log configuration
             config_dict = self.config.to_dict()
 
-            # Log basic config params
             for key, value in config_dict.items():
                 if isinstance(value, (int, float, str, bool)):
                     mlflow.log_param(f"config_{key}", value)
 
-            # Log training params
+            # Log AMP settings
+            mlflow.log_param("use_amp", self.use_amp)
+            mlflow.log_param("amp_dtype", str(self.amp_dtype))
+
             mlflow.log_param("max_iters", max_iters)
             mlflow.log_param("learning_rate", learning_rate)
             mlflow.log_param("eval_interval", eval_interval)
 
-            # Log model info
             model_info = model.get_model_info()
             for key, value in model_info.items():
                 if isinstance(value, (int, float, str, bool)):
@@ -162,26 +191,22 @@ class UniversalTransformerTrainer:
 
             for epoch in range(max_iters):
                 for batch, targets in train_dataloader:
-                    # Data is already on correct device thanks to collate_fn
                     loss = self.train_step(model, batch, targets, optimizer, 'language_modeling')
                     train_losses.append(loss)
 
                     global_step += 1
 
-                    # Evaluation
                     if global_step % eval_interval == 0 or global_step >= max_iters:
                         if val_dataloader is not None:
                             eval_metrics = self.evaluate_model(model, val_dataloader, 'language_modeling')
                             val_loss = eval_metrics['eval_loss']
 
-                            # MLflow logging
                             mlflow.log_metrics({
                                 'train_loss': sum(train_losses[-eval_interval:]) / min(len(train_losses), eval_interval),
                                 'val_loss': val_loss,
                                 'perplexity': eval_metrics['perplexity']
                             }, step=global_step)
 
-                            # Early stopping check
                             if val_loss < best_val_loss:
                                 best_val_loss = val_loss
 
@@ -196,27 +221,21 @@ class UniversalTransformerTrainer:
                 if global_step >= max_iters:
                     break
 
-            # Save model
             mlflow.pytorch.log_model(
                 pytorch_model=model,
                 artifact_path="model",
                 registered_model_name=self.config.model_name
             )
 
-            # Final evaluation and generation sample
+            # Final generation с AMP
             model.eval()
             with torch.no_grad():
-                # Generate sample text
                 context = torch.zeros(1, 1, dtype=torch.long, device=self.config.device)
-
-                # Use config generation parameters
                 generated = model.generate(
                     context, 
                     max_new_tokens=min(100, self.config.max_generation_length),
                     temperature=self.config.generation_temperature
                 )
-
-                # Log generation sample (would need tokenizer for proper decoding)
                 mlflow.log_text(f"Generated tokens: {generated[0].tolist()}", "generation_sample.txt")
 
             return model
@@ -224,17 +243,13 @@ class UniversalTransformerTrainer:
     def run_complexity_fine_tuning(self, model: TransformerSquared, code_data: list, 
                                  complexity_labels: list, max_iters: int = 1000, 
                                  learning_rate: float = 1e-4, run_name: Optional[str] = None) -> TransformerSquared:
-        """Fine-tune model for complexity analysis"""
+        """Fine-tune model for complexity analysis с AMP"""
 
-        # Check if model supports complexity analysis
         if not model.complexity_head:
-            print("Warning: Model does not have complexity head enabled. Enable with config.enable_complexity_head = True")
+            print("Warning: Model does not have complexity head enabled.")
             return model
 
-        # Prepare complexity data
         x_complexity, y_complexity = self.prepare_complexity_data(code_data, complexity_labels)
-
-        # Create DataLoader for complexity data
         complexity_dataset = TensorDataset(x_complexity, y_complexity)
 
         def complexity_collate_fn(batch):
@@ -255,28 +270,29 @@ class UniversalTransformerTrainer:
             mlflow.log_param("task", "complexity_analysis")
             mlflow.log_param("fine_tuning_iters", max_iters)
             mlflow.log_param("fine_tuning_lr", learning_rate)
-            mlflow.log_param("complexity_classes", self.config.num_complexity_classes)
+            mlflow.log_param("use_amp", self.use_amp)
+            mlflow.log_param("use_scaler", self.use_scaler)  # Добавлено
 
             for iter_num in range(max_iters):
                 for x_batch, y_batch in complexity_dataloader:
-                    # Data is already on correct device thanks to collate_fn
                     loss = self.train_step(model, x_batch, y_batch, optimizer, 'complexity_analysis')
 
                     if iter_num % 100 == 0:
                         mlflow.log_metric('complexity_loss', loss, step=iter_num)
                         print(f"Complexity fine-tuning iter {iter_num}: loss={loss:.4f}")
 
-            # Evaluate complexity classification
+            # Evaluate с AMP
             model.eval()
             with torch.no_grad():
-                eval_batch = next(iter(complexity_dataloader))
-                x_eval, y_eval = eval_batch
-                logits, _ = model(x_eval, task_type='complexity_analysis')
-                predictions = torch.argmax(logits, dim=-1)
-                accuracy = (predictions == y_eval).float().mean().item()
+                with torch.amp.autocast(device_type=self.device_type, dtype=self.amp_dtype, enabled=self.use_amp):
+                    eval_batch = next(iter(complexity_dataloader))
+                    x_eval, y_eval = eval_batch
+                    logits, _ = model(x_eval, task_type='complexity_analysis')
+                    predictions = torch.argmax(logits, dim=-1)
+                    accuracy = (predictions == y_eval).float().mean().item()
 
-                mlflow.log_metric("complexity_accuracy", accuracy)
-                print(f"Final complexity accuracy: {accuracy:.4f}")
+                    mlflow.log_metric("complexity_accuracy", accuracy)
+                    print(f"Final complexity accuracy: {accuracy:.4f}")
 
             return model
 
@@ -337,7 +353,7 @@ def train_transformer_squared(config: ModelConfig, train_data: torch.Tensor,
     """Train a Transformer² model"""
     config.enable_transformer_squared_features()
     trainer = UniversalTransformerTrainer(config, "transformer_squared")
-    return trainer.run_training(train_data, val_data, run_name="transformer_squared_baseline")
+    return trainer.run_training(train_data, val_data, run_name=config.experiment_name)
 
 def train_code_analysis_model(config: ModelConfig, train_data: torch.Tensor, 
                             val_data: Optional[torch.Tensor] = None,
@@ -476,16 +492,24 @@ def run_laptop_test():
     return model
 
 def run_quick_test():
-    """Quick test of the universal trainer"""
-    print("Running quick test...")
+    """Quick test с bfloat16"""
+    print("Running quick test with bfloat16...")
+    
+    # Проверка поддержки BFloat16
+    if torch.cuda.is_available():
+        print(f"BFloat16 supported: {torch.cuda.is_bf16_supported()}")
 
-    # Create simple config
     config = ModelConfig()
     config.tokenizer_type = 'char'
+    
+    # Настройка mixed precision
+    config.use_amp = True
+    config.amp_dtype = torch.bfloat16
+    config.model_dtype = torch.bfloat16
+    
     config.enable_transformer_squared_features()
     config.model_name = "quick_test_model"
 
-       # Подготовка данных
     data = load_data(config.data_file)
 
     if config.tokenizer_type == 'char':
@@ -494,27 +518,12 @@ def run_quick_test():
         tokenizer = BPETokenizer(data)
 
     config.vocab_size = tokenizer.get_vocab_size()
+    train_data, val_data = prepare_data(data, tokenizer, config, split_flag=config.split_flag)
 
-    # Подготавливаем данные для обучения
-    train_data, val_data  = prepare_data(data, tokenizer, config, split_flag=config.split_flag)
-
-
-    # Train model
     model = train_transformer_squared(config, train_data, val_data)
 
     print(f"Quick test completed! Model has {model.get_model_info()['total_parameters']} parameters")
+    print(f"AMP enabled: {config.use_amp}, dtype: {config.amp_dtype}")
     return model
 
-if __name__ == "__main__":
-    import argparse
 
-    parser = argparse.ArgumentParser(description="Universal Transformer Trainer")
-    parser.add_argument("--mode", choices=["comparison", "quick_test"], 
-                       default="comparison", help="Training mode")
-
-    args = parser.parse_args()
-
-    if args.mode == "comparison":
-        run_comparison_experiment()
-    elif args.mode == "quick_test":
-        run_quick_test()

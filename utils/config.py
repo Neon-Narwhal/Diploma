@@ -24,6 +24,7 @@ class ModelConfig:
     overfit_line: float = 0.05
     dropout: float = 0.1
     model_name: str = "my_model_v1"
+    experiment_name: str = "experiment_name"
     seed: int = 1337
 
     # ========== ПАРАМЕТРЫ РАЗДЕЛЕНИЯ ДАННЫХ ==========
@@ -34,6 +35,11 @@ class ModelConfig:
     tokenizer_type: str = 'bpe'  # 'bpe' или 'char'
     experiment_name: str = "transformer_language_model"
     data_file: str = "data/input.txt"
+
+    # ========== типы данных ==========
+    use_amp = True  # Использовать automatic mixed precision
+    amp_dtype = torch.bfloat16  # Тип для AMP (bfloat16 или float16)
+    model_dtype = torch.bfloat16  # Базовый тип весов модели
 
     # ========== ПАРАМЕТРЫ ГЕНЕРАЦИИ ==========
     max_generation_chars: int = 500
@@ -68,6 +74,7 @@ class ModelConfig:
     use_bias_in_attention: bool = False
     use_bias_in_ffn: bool = True
     ffn_expansion_factor: int = 4
+    use_rope: bool = True
 
     # Attention конфигурация
     attention_dropout: float = 0.1
