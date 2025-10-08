@@ -1,0 +1,54 @@
+{
+  "radon": {
+    "accuracy": 0.17020408163265305,
+    "f1_weighted": 0.08289265349759384,
+    "precision_weighted": 0.11477040858312129,
+    "recall_weighted": 0.17020408163265305,
+    "mean_complexity_distance": 2.136779505946935,
+    "total_execution_time": 2.801605661999929,
+    "mean_time_per_sample": 0.0005683790416305226,
+    "median_time_per_sample": 0.00033834799978649244,
+    "samples_per_second": 1748.997036400237,
+    "valid_predictions": 4900,
+    "total_samples": 4900
+  },
+  "mccabe": {
+    "accuracy": 0.17142857142857143,
+    "f1_weighted": 0.10402940624436079,
+    "precision_weighted": 0.10303748080693093,
+    "recall_weighted": 0.17142857142857143,
+    "mean_complexity_distance": 1.9524245196706314,
+    "total_execution_time": 1.6096020669997415,
+    "mean_time_per_sample": 0.00032570569326949506,
+    "median_time_per_sample": 0.00016308299996126152,
+    "samples_per_second": 3044.230683136161,
+    "valid_predictions": 4900,
+    "total_samples": 4900
+  },
+  "lizard": {
+    "accuracy": 0.17061224489795918,
+    "f1_weighted": 0.0837368381321006,
+    "precision_weighted": 0.1123145143607177,
+    "recall_weighted": 0.17061224489795918,
+    "mean_complexity_distance": 2.1246569075937787,
+    "total_execution_time": 3.478431754000212,
+    "mean_time_per_sample": 0.000705770790817654,
+    "median_time_per_sample": 0.0005018570000174805,
+    "samples_per_second": 1408.6807925338705,
+    "valid_predictions": 4900,
+    "total_samples": 4900
+  },
+  "complexipy": {
+    "accuracy": 0.23408163265306123,
+    "f1_weighted": 0.1811851107002463,
+    "precision_weighted": 0.15944334985623398,
+    "recall_weighted": 0.23408163265306123,
+    "mean_complexity_distance": 1.5096065873741995,
+    "total_execution_time": 0.553342487000009,
+    "mean_time_per_sample": 0.00011067127775305028,
+    "median_time_per_sample": 4.8847000016394304e-05,
+    "samples_per_second": 8855.275195956388,
+    "valid_predictions": 4900,
+    "total_samples": 4900
+  }
+}

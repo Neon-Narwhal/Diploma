@@ -16,18 +16,26 @@ def load_data(file_path: str) -> str:
         print(f"Файл {file_path} не найден. Используем тестовые данные.")
         return "Hello world! This is a test dataset for training language models. " * 100
     
-def load_data_json(file_path: str) -> list:
+def load_data_json(file_path: str, sample_size: int = -1) -> list:
     """Загрузка данных из файла форматом jsonl"""
     datas = []
-    # Чтение JSONL файла построчно
+    
     with open(file_path, 'r', encoding='utf-8') as file:
         for line in file:
-            # Парсинг каждой строки как JSON-объект
+            if sample_size == 0:
+                break
+            
+            line = line.strip()
+            if not line:
+                continue
+                
             try:
-                datas.append(json.loads(line.strip()))
+                datas.append(json.loads(line))
+                sample_size = sample_size - 1 if sample_size > 0 else -1
             except json.JSONDecodeError as e:
                 print(f"Ошибка парсинга строки: {line}")
                 print(e)
+    
     return datas
     
 

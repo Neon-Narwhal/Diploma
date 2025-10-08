@@ -466,7 +466,8 @@ def run_laptop_test():
         n_embd=48,
         n_head=6,
         n_layer=3,
-        overfit_line=1)
+        overfit_line=1,
+        experiment_name="transformer_squared_baseline")
     config.tokenizer_type = 'char'
     config.enable_transformer_squared_features()
     config.model_name = "laptop_model"
@@ -474,10 +475,8 @@ def run_laptop_test():
        # Подготовка данных
     data = load_data(config.data_file)
 
-    if config.tokenizer_type == 'char':
-        tokenizer = CharTokenizer(data)
-    else:
-        tokenizer = BPETokenizer(data)
+    tokenizer = BPETokenizer(data) if config.tokenizer_type == 'bpe' else CharTokenizer(data)
+
 
     config.vocab_size = tokenizer.get_vocab_size()
 
