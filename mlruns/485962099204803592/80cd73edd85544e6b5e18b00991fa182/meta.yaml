@@ -1,0 +1,14 @@
+artifact_uri: file:///home/neonnarwhal/projects/Diploma/mlruns/485962099204803592/80cd73edd85544e6b5e18b00991fa182/artifacts
+end_time: 1760034278655
+entry_point_name: ''
+experiment_id: '485962099204803592'
+lifecycle_stage: active
+run_id: 80cd73edd85544e6b5e18b00991fa182
+run_name: TransformerSquared_20251009_212438
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1760034278341
+status: 4
+tags: []
+user_id: neonnarwhal

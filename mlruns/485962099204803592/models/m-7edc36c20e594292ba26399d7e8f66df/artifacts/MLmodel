@@ -1,0 +1,23 @@
+artifact_path: file:///home/neonnarwhal/projects/Diploma/mlruns/485962099204803592/models/m-7edc36c20e594292ba26399d7e8f66df/artifacts
+flavors:
+  python_function:
+    config:
+      device: null
+    data: data
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pytorch
+    pickle_module_name: mlflow.pytorch.pickle_module
+    python_version: 3.11.13
+  pytorch:
+    code: null
+    model_data: data
+    pytorch_version: 2.8.0+cu128
+mlflow_version: 3.4.0
+model_id: m-7edc36c20e594292ba26399d7e8f66df
+model_size_bytes: 27264175
+model_uuid: m-7edc36c20e594292ba26399d7e8f66df
+prompts: null
+run_id: 0a65af3a2e114bc094f94a445c577c04
+utc_time_created: '2025-10-09 18:33:15.604339'

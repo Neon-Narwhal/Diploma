@@ -1,9 +1,19 @@
-"""Модули для обучения модели"""
+"""
+Training модули для обучения моделей.
 
-try:
-    from .trainer import ModelTrainer, estimate_loss
-    from .transformer_squared_training import run_comparison_experiment, TransformerSquaredTrainer, run_laptop_test
-    __all__ = ['ModelTrainer', 'estimate_loss', 'run_comparison_experiment', 'TransformerSquaredTrainer', 'run_laptop_test']
-except ImportError:
-    # Если trainer.py еще не создан
-    __all__ = []
+Компоненты:
+- UniversalTrainer: универсальный тренер для всех моделей
+- BigOBenchDataset: датасет для BigOBench
+- ModelRegistry: регистрация и создание моделей
+"""
+
+from .universal_trainer import UniversalTrainer
+from .bigobench_dataset import BigOBenchDataset, create_dataloaders_from_config
+from .model_registry import ModelRegistry
+
+__all__ = [
+    'UniversalTrainer',
+    'BigOBenchDataset',
+    'create_dataloaders_from_config',
+    'ModelRegistry',
+]

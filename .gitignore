@@ -213,3 +213,5 @@ tests.ipynb
 data/
 notebooks/notebook.ipynb
 exps.ipynb
+checkpoints/
+scr/

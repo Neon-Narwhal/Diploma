@@ -20,17 +20,17 @@ class SVFLinear(nn.Module):
         self.config = config
 
         # Calculate rank from config
-        self.rank = max(1, int(min(in_features, out_features) * config.svf_rank_ratio))
+        self.rank = config.svf_rank
 
         # SVD components
-        self.U = nn.Linear(self.rank, out_features, bias=False, dtype=self.config.model_dtype)
-        self.V = nn.Linear(in_features, self.rank, bias=False, dtype=self.config.model_dtype)
+        self.U = nn.Linear(self.rank, out_features, bias=False)
+        self.V = nn.Linear(in_features, self.rank, bias=False)
 
         # Expert vector for task adaptation
-        self.z_vector = nn.Parameter(torch.ones(1, self.rank, dtype=self.config.model_dtype))
+        self.z_vector = nn.Parameter(torch.ones(1, self.rank))
 
         # Optional bias
-        self.bias = nn.Parameter(torch.zeros(out_features, dtype=self.config.model_dtype)) if config.svf_bias else None
+        self.bias = nn.Parameter(torch.zeros(out_features)) if config.svf_bias else None
 
         self._init_weights()
 
@@ -62,7 +62,7 @@ class StandardLinear(nn.Module):
     def __init__(self, in_features: int, out_features: int, config, bias: bool = True):
         super().__init__()
         self.config = config
-        self.linear = nn.Linear(in_features, out_features, bias=bias, dtype=self.config.model_dtype)
+        self.linear = nn.Linear(in_features, out_features, bias=bias)
         self.config = config
         self._init_weights()
 
@@ -95,7 +95,7 @@ class AdaptiveAttentionHead(nn.Module):
         self.value = linear_cls(config.n_embd, head_size, config)
 
         # Causal mask
-        self.register_buffer('tril', torch.tril(torch.ones(config.block_size, config.block_size, dtype=self.config.model_dtype)))
+        self.register_buffer('tril', torch.tril(torch.ones(config.block_size, config.block_size)))
         self.dropout = nn.Dropout(config.attention_dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -114,7 +114,7 @@ class AdaptiveAttentionHead(nn.Module):
         # Scaled dot-product attention
         wei = q @ k.transpose(-2, -1) * (self.head_size ** -0.5)
         wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
-        wei = F.softmax(wei, dim=-1, dtype=self.config.model_dtype)
+        wei = F.softmax(wei, dim=-1)
         wei = self.dropout(wei)
 
         out = wei @ v
@@ -218,7 +218,7 @@ class ExpertVectorManager(nn.Module):
 
         for i, name in enumerate(expert_names[:config.num_expert_vectors]):
             self.task_experts[name] = nn.Parameter(
-                torch.randn(config.n_layer, config.n_embd, dtype=self.config.model_dtype)
+                torch.randn(config.n_layer, config.n_embd)
             )
 
         self._init_expert_vectors()
@@ -251,11 +251,9 @@ class TransformerSquared(nn.Module):
         super().__init__()
         self.config = config
 
-        # Валидация конфигурации
-        config.validate()
         
         # Embeddings - токенные эмбеддинги всегда нужны
-        self.token_embedding_table = nn.Embedding(config.vocab_size, config.n_embd, dtype=self.config.model_dtype)
+        self.token_embedding_table = nn.Embedding(config.vocab_size, config.n_embd)
         
         # Создаем RoPE если включен в конфиге, иначе используем стандартные позиционные эмбеддинги
         self.rope = None
@@ -270,7 +268,7 @@ class TransformerSquared(nn.Module):
             self.position_embedding_table = None
         else:
             # Стандартные позиционные эмбеддинги
-            self.position_embedding_table = nn.Embedding(config.block_size, config.n_embd, dtype=self.config.model_dtype)
+            self.position_embedding_table = nn.Embedding(config.block_size, config.n_embd)
 
         # Transformer блоки с передачей RoPE
         self.blocks = nn.ModuleList([
@@ -365,7 +363,7 @@ class TransformerSquared(nn.Module):
             x = tok_emb
         else:
             # Стандартный путь с позиционными эмбеддингами
-            pos_emb = self.position_embedding_table(torch.arange(T, device=device, dtype=self.config.model_dtype))
+            pos_emb = self.position_embedding_table(torch.arange(T, device=device))
             x = tok_emb + pos_emb
 
         # Transformer блоки
@@ -574,3 +572,21 @@ class TransformerSquared(nn.Module):
         self.config.use_rope = False
         
         print("Переключено на стандартные позиционные эмбеддинги")
+
+    def get_model_specific_metrics(self) -> dict:
+        """
+        Возвращает специфичные метрики для Transformer² модели.
+        
+        Returns:
+            Dict с метриками (пустой если нет специфичных)
+        """
+        metrics = {}
+        
+        # Можно добавить специфичные метрики для T²:
+        # - SVF rank usage
+        # - Expert vectors utilization
+        # - Adaptive attention span
+        # и т.д.
+        
+        # Пока возвращаем пустой dict
+        return metrics

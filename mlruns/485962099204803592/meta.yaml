@@ -1,0 +1,6 @@
+artifact_location: file:///home/neonnarwhal/projects/Diploma/mlruns/485962099204803592
+creation_time: 1760034234845
+experiment_id: '485962099204803592'
+last_update_time: 1760034234845
+lifecycle_stage: active
+name: transformer_squared_bigobench_training
