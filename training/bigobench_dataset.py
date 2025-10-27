@@ -92,9 +92,10 @@ class BigOBenchDataset(Dataset):
         logger.info(f"[BigOBenchDataset] Загружено {len(self.samples)} валидных примеров")
     
     def _load_data(self) -> List[Dict]:
-        """Загрузка и фильтрация данных из JSONL файла."""
+        """Загрузка и фильтрация данных из JSONL файла с пропагацией асимптотики."""
         samples = []
         skipped = 0
+        task_complexity_cache = {}  # Кэш асимптотик для задач
         
         with open(self.data_path, 'r', encoding='utf-8') as f:
             for line_num, line in enumerate(f, 1):
@@ -107,6 +108,40 @@ class BigOBenchDataset(Dataset):
                 
                 try:
                     data = json.loads(line)
+                    
+                    # Определяем ID задачи
+                    task_id = (
+                        data.get('problem_id') or 
+                        data.get('task_id') or 
+                        data.get('problem') or
+                        str(line_num)  # Fallback
+                    )
+                    
+                    # Проверяем и кэшируем асимптотику
+                    time_complexity = data.get('time_complexity_inferred')
+                    space_complexity = data.get('space_complexity_inferred')
+                    
+                    # Сохраняем асимптотику для задачи (если есть)
+                    if time_complexity and time_complexity not in ['', 'Unknown', 'UNKNOWN']:
+                        if task_id not in task_complexity_cache:
+                            task_complexity_cache[task_id] = {}
+                        task_complexity_cache[task_id]['time'] = time_complexity
+                    
+                    if space_complexity and space_complexity not in ['', 'Unknown', 'UNKNOWN']:
+                        if task_id not in task_complexity_cache:
+                            task_complexity_cache[task_id] = {}
+                        task_complexity_cache[task_id]['space'] = space_complexity
+                    
+                    # Применяем кэшированную асимптотику (если нет текущей)
+                    if task_id in task_complexity_cache:
+                        cache = task_complexity_cache[task_id]
+                        if not time_complexity or time_complexity in ['', 'Unknown', 'UNKNOWN']:
+                            if 'time' in cache:
+                                data['time_complexity_inferred'] = cache['time']
+                        
+                        if not space_complexity or space_complexity in ['', 'Unknown', 'UNKNOWN']:
+                            if 'space' in cache:
+                                data['space_complexity_inferred'] = cache['space']
                     
                     # Применяем фильтр (если есть)
                     if self.filter_fn and not self.filter_fn(data):
@@ -140,7 +175,10 @@ class BigOBenchDataset(Dataset):
         if skipped > 0:
             logger.info(f"[BigOBenchDataset] Пропущено {skipped} невалидных примеров")
         
+        logger.info(f"[BigOBenchDataset] Кэшировано асимптотик для {len(task_complexity_cache)} задач")
+        
         return samples
+
     
     def __len__(self) -> int:
         return len(self.samples)

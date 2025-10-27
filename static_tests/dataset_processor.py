@@ -74,13 +74,30 @@ class DatasetProcessor:
         self.metrics_calculator = MetricsCalculator()
     
     def load_jsonl(self, filepath: Path) -> List[Dict[str, Any]]:
-        """Загружает данные из JSONL файла"""
+        """Загружает данные из JSONL файла с пропагацией асимптотики"""
         data = []
+        complexity_cache = {}  # Кэш асимптотик для задач
+        
         with open(filepath, 'r', encoding='utf-8') as f:
             for line in f:
                 if line.strip():
-                    data.append(json.loads(line))
+                    sample = json.loads(line)
+                    
+                    # Определяем ID задачи
+                    task_id = sample.get('problem_id') or sample.get('problem', 'unknown')
+                    
+                    # Кэшируем асимптотику если есть
+                    if sample.get('complexity'):
+                        complexity_cache[task_id] = sample['complexity']
+                    
+                    # Применяем кэшированную асимптотику если нет текущей
+                    elif task_id in complexity_cache:
+                        sample['complexity'] = complexity_cache[task_id]
+                    
+                    data.append(sample)
+        
         return data
+
     
     def process_sample(
         self, 
