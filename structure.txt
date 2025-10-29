@@ -1,0 +1,129 @@
+Diploma/
+├── complexity_analyzers/              # Основной модуль анализаторов
+│   ├── __init__.py
+│   ├── base/                         # Базовые классы и интерфейсы
+│   │   ├── __init__.py
+│   │   ├── analyzer.py               # BaseComplexityAnalyzer
+│   │   ├── result.py                 # ComplexityResult
+│   │   └── enums.py                  # ComplexityClass, AnalyzerType
+│   ├── ast/                          # Статический анализ AST
+│   │   ├── __init__.py
+│   │   ├── basic_analyzer.py         # Базовый AST-анализ
+│   │   ├── advanced_analyzer.py      # Расширенный AST-анализ  
+│   │   ├── pattern_detectors.py      # Детекторы паттернов
+│   │   └── feature_extractors.py     # Извлечение признаков
+│   ├── runtime/                      # Профилирование времени
+│   │   ├── __init__.py
+│   │   ├── profiler.py               # RuntimeProfiler
+│   │   ├── benchmarker.py            # Бенчмаркинг
+│   │   └── curve_fitting.py          # Подгонка кривых сложности
+│   ├── cfg/                          # Анализ графа потока управления
+│   │   ├── __init__.py
+│   │   ├── analyzer.py               # CFGComplexityAnalyzer
+│   │   ├── builder.py                # Построение CFG
+│   │   └── metrics.py                # CFG-метрики
+│   ├── ml/                           # Машинное обучение
+│   │   ├── __init__.py
+│   │   ├── predictor.py              # ML-предиктор
+│   │   ├── feature_engineering.py    # Feature engineering
+│   │   ├── models/                   # ML-модели
+│   │   │   ├── random_forest.py
+│   │   │   ├── xgboost_model.py
+│   │   │   └── neural_net.py
+│   │   └── ensemble.py               # Ансамблевые методы
+│   ├── dynamic/                      # Динамический анализ
+│   │   ├── __init__.py
+│   │   ├── tracer.py                 # Трассировка выполнения
+│   │   ├── instrumenter.py           # Инструментация кода
+│   │   └── recurrence_solver.py      # Решение рекуррентных соотношений
+│   ├── metrics/                      # Метрический анализ
+│   │   ├── __init__.py
+│   │   ├── calculator.py             # Общий калькулятор метрик
+│   │   ├── radon_adapter.py          # Адаптер для Radon
+│   │   ├── mccabe_adapter.py         # Адаптер для McCabe
+│   │   └── custom_metrics.py         # Собственные метрики
+│   ├── tools/                        # Инструментальный анализ
+│   │   ├── __init__.py
+│   │   ├── profiler_tools.py         # py-spy, line_profiler
+│   │   ├── memory_analyzer.py        # memory_profiler
+│   │   └── performance_analyzer.py   # Анализ производительности
+│   └── hybrid/                       # Гибридный подход
+│       ├── __init__.py
+│       ├── ensemble.py               # Главный ансамбль
+│       ├── weighting.py              # Система весов
+│       └── decision_fusion.py        # Объединение решений
+├── datasets/                         # Датасеты и данные
+│   ├── __init__.py
+│   ├── loaders/                      # Загрузчики датасетов
+│   │   ├── __init__.py
+│   │   ├── bigobench_loader.py       # BigO-Bench
+│   │   ├── leetcode_loader.py        # LeetCode алгоритмы
+│   │   └── synthetic_loader.py       # Синтетические алгоритмы
+│   ├── processors/                   # Обработчики данных
+│   │   ├── __init__.py
+│   │   ├── code_preprocessor.py      # Предобработка кода
+│   │   ├── labeler.py                # Система разметки
+│   │   └── augmentation.py           # Аугментация данных
+│   └── validation/                   # Валидационные наборы
+│       ├── __init__.py
+│       ├── known_algorithms.py       # Алгоритмы с известной сложностью
+│       └── test_cases.py             # Тестовые случаи
+├── training/                         # Система обучения (уже есть)
+│   ├── __init__.py
+│   ├── trainers/                     # Различные тренеры
+│   │   ├── __init__.py
+│   │   ├── ml_trainer.py             # Тренер ML-моделей
+│   │   ├── ensemble_trainer.py       # Тренер ансамблей
+│   │   └── hybrid_trainer.py         # Тренер гибридных моделей
+│   ├── experiments/                  # Эксперименты
+│   │   ├── __init__.py
+│   │   ├── ablation_studies.py       # Ablation studies
+│   │   ├── comparison_studies.py     # Сравнительные исследования
+│   │   └── hyperparameter_tuning.py  # Подбор гиперпараметров
+│   └── evaluation/                   # Оценка качества
+│       ├── __init__.py
+│       ├── metrics.py                # Метрики качества
+│       ├── cross_validation.py       # Кросс-валидация
+│       └── benchmarking.py           # Бенчмаркинг методов
+├── utils/                           # Утилиты (уже есть)
+│   ├── __init__.py
+│   ├── config/                      # Конфигурации
+│   │   ├── __init__.py
+│   │   ├── analyzer_configs.py      # Конфиги анализаторов
+│   │   ├── training_configs.py      # Конфиги обучения
+│   │   └── experiment_configs.py    # Конфиги экспериментов
+│   ├── io/                          # Ввод/вывод
+│   │   ├── __init__.py
+│   │   ├── file_utils.py            # Работа с файлами
+│   │   ├── serialization.py         # Сериализация
+│   │   └── export_utils.py          # Экспорт результатов
+│   └── visualization/               # Визуализация
+│       ├── __init__.py
+│       ├── plotting.py              # Графики и диаграммы
+│       ├── reports.py               # Генерация отчетов
+│       └── dashboard.py             # Интерактивная панель
+├── tests/                           # Тесты
+│   ├── __init__.py
+│   ├── unit/                        # Юнит-тесты
+│   │   ├── test_analyzers.py
+│   │   ├── test_ml_models.py
+│   │   └── test_utils.py
+│   ├── integration/                 # Интеграционные тесты
+│   │   ├── test_pipelines.py
+│   │   └── test_end_to_end.py
+│   └── fixtures/                     # Тестовые данные
+│       ├── sample_algorithms.py
+│       └── expected_results.json
+├── scripts/                         # Скрипты автоматизации
+│   ├── __init__.py
+│   ├── data_collection.py           # Сбор данных
+│   ├── model_training.py            # Запуск обучения
+│   ├── evaluation.py                # Запуск оценки
+│   └── benchmark.py                 # Бенчмаркинг
+├── static_tests/                    # Существующий модуль (рефакторить)
+├── models/                          # Сохраненные модели (уже есть)
+├── mlruns/                          # MLflow runs (уже есть)
+├── experiments/                     # Результаты экспериментов (уже есть)
+├── main.py                          # Точка входа (обновить)
+├── pyproject.toml                   # Зависимости (обновить)
+└── README.md                        # Документация (обновить)
