@@ -7,8 +7,8 @@ from collections import defaultdict, deque
 from complexity_analyzers.base.analyzer import BaseComplexityAnalyzer, AnalyzerType, AnalysisContext
 from complexity_analyzers.base.result import ComplexityResult, ComplexityClass, ComplexityMetrics
 from complexity_analyzers.base.enums import PatternType, DataStructureUsage
-from complexity_analyzers.ast.pattern_detectors import PatternDetectorRegistry
-from complexity_analyzers.ast.feature_extractors import ASTFeatureExtractor
+from complexity_analyzers.ast_analyzers.pattern_detectors import PatternDetectorRegistry
+from complexity_analyzers.ast_analyzers.feature_extractors import ASTFeatureExtractor
 
 class AdvancedLoopAnalyzer(ast.NodeVisitor):
     """Продвинутый анализатор циклов"""

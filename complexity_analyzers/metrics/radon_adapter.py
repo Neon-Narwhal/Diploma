@@ -1,8 +1,8 @@
 """Адаптер для библиотеки Radon"""
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import logging
 
-from complexity_analyzers.metrics.calculator import BaseMetricsCalculator
+from complexity_analyzers.metrics.base import BaseMetricsCalculator
 
 logger = logging.getLogger(__name__)
 

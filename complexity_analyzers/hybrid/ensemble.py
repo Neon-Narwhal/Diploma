@@ -397,7 +397,7 @@ class HybridComplexityAnalyzer(BaseComplexityAnalyzer):
         ])
         
         # Инициализация анализаторов
-        from complexity_analyzers.ast.advanced_analyzer import AdvancedASTAnalyzer
+        from complexity_analyzers.ast_analyzers.advanced_analyzer import AdvancedASTAnalyzer
         from complexity_analyzers.runtime.profiler import RuntimeProfiler
         from complexity_analyzers.cfg.analyzer import CFGComplexityAnalyzer
         from complexity_analyzers.ml.predictor import MLComplexityPredictor

@@ -5,8 +5,7 @@ from complexity_analyzers.runtime.benchmarker import (
     AlgorithmBenchmarker,
     BenchmarkResult,
     BenchmarkConfig,
-    TestDataGenerator,
-    BenchmarkRunner
+    TestDataGenerator
 )
 from complexity_analyzers.runtime.curve_fitting import (
     ComplexityCurveFitter,
@@ -23,8 +22,7 @@ __all__ = [
     'AlgorithmBenchmarker',
     'BenchmarkResult',
     'BenchmarkConfig', 
-    'TestDataGenerator',
-    'BenchmarkRunner',
+    'TestDataGenerator'
     
     # Подгонка кривых
     'ComplexityCurveFitter',

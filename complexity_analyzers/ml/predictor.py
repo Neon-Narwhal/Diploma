@@ -2,6 +2,7 @@
 import joblib
 import numpy as np
 import pandas as pd
+import ast
 from typing import Dict, Any, List, Optional, Tuple
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from sklearn.model_selection import train_test_split, cross_val_score

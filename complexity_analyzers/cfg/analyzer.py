@@ -5,6 +5,7 @@ from typing import Dict, Any, List, Optional, Set, Tuple
 from dataclasses import dataclass
 from complexity_analyzers.base.analyzer import BaseComplexityAnalyzer, AnalyzerType
 from complexity_analyzers.base.result import ComplexityResult, ComplexityClass, ComplexityMetrics
+import numpy as np
 
 @dataclass
 class CFGNode:

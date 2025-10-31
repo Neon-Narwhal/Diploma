@@ -24,6 +24,7 @@ dependencies = [
     "torch",
     "tqdm>=4.65.0",
     "vulture>=2.14",
+    "xgboost>=3.1.1",
 ]
 
 [dependency-groups]

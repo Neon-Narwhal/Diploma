@@ -15,10 +15,10 @@ class ComplexityClass(Enum):
     FACTORIAL = ("O(n!)", 9, "factorial")
     UNKNOWN = ("O(?)", 0, "unknown")
     
-    def __init__(self, notation: str, complexity_order: int, name: str):
+    def __init__(self, notation: str, complexity_order: int, class_name: str):
         self.notation = notation
         self.complexity_order = complexity_order
-        self.name = name
+        self.class_name = class_name  # Изменено с 'name' на 'class_name'
     
     def __lt__(self, other):
         if isinstance(other, ComplexityClass):

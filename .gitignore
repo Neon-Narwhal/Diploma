@@ -215,3 +215,5 @@ notebooks/notebook.ipynb
 exps.ipynb
 checkpoints/
 scr/
+complexity_analyzer/
+structure.txt

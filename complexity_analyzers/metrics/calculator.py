@@ -4,10 +4,8 @@ from typing import Dict, Any, List, Optional, Union
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 
+from complexity_analyzers.metrics.base import BaseMetricsCalculator
 from complexity_analyzers.base.enums import ComplexityClass
-from complexity_analyzers.metrics.radon_adapter import RadonAdapter
-from complexity_analyzers.metrics.mccabe_adapter import McCabeAdapter
-from complexity_analyzers.metrics.custom_metrics import CustomMetricsCalculator
 
 @dataclass
 class MetricsResult:
@@ -48,27 +46,13 @@ class MetricsResult:
             'raw_metrics': self.raw_metrics or {}
         }
 
-class BaseMetricsCalculator(ABC):
-    """Базовый класс для калькуляторов метрик"""
-    
-    def __init__(self, name: str):
-        self.name = name
-    
-    @abstractmethod
-    def calculate(self, source_code: str) -> Dict[str, Any]:
-        """Вычисление метрик"""
-        pass
-    
-    @abstractmethod
-    def is_available(self) -> bool:
-        """Проверка доступности калькулятора"""
-        pass
-
 class UniversalMetricsCalculator:
     """Универсальный калькулятор метрик"""
     
     def __init__(self):
         self.calculators: Dict[str, BaseMetricsCalculator] = {}
+        # ИСПРАВЛЕНО: импорт перенесен сюда
+        from complexity_analyzers.metrics.custom_metrics import CustomMetricsCalculator
         self.custom_calculator = CustomMetricsCalculator()
         
         # Инициализация адаптеров
@@ -76,17 +60,18 @@ class UniversalMetricsCalculator:
     
     def _initialize_calculators(self):
         """Инициализация всех доступных калькуляторов"""
-        # Radon
+        # ИСПРАВЛЕНО: импорты перенесены внутрь метода
+        from complexity_analyzers.metrics.radon_adapter import RadonAdapter
+        from complexity_analyzers.metrics.mccabe_adapter import McCabeAdapter
+        
         radon_adapter = RadonAdapter()
         if radon_adapter.is_available():
             self.calculators['radon'] = radon_adapter
         
-        # McCabe
         mccabe_adapter = McCabeAdapter()
         if mccabe_adapter.is_available():
             self.calculators['mccabe'] = mccabe_adapter
         
-        # Всегда доступен
         self.calculators['custom'] = self.custom_calculator
     
     def calculate_all_metrics(self, source_code: str, 

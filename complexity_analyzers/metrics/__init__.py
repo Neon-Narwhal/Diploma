@@ -1,25 +1,25 @@
+# complexity_analyzers/metrics/__init__.py
+
 """Метрические анализаторы"""
 
-from complexity_analyzers.metrics.calculator import (
+
+from .base import BaseMetricsCalculator
+from .calculator import (
     UniversalMetricsCalculator,
     MetricsResult,
     ComplexityClassifier,
-    MetricsAnalyzer,
-    BaseMetricsCalculator
+    MetricsAnalyzer
 )
-from complexity_analyzers.metrics.radon_adapter import RadonAdapter
-from complexity_analyzers.metrics.mccabe_adapter import McCabeAdapter
-from complexity_analyzers.metrics.custom_metrics import CustomMetricsCalculator
+from .radon_adapter import RadonAdapter
+from .mccabe_adapter import McCabeAdapter
+from .custom_metrics import CustomMetricsCalculator
 
 __all__ = [
-    # Калькуляторы
     'UniversalMetricsCalculator',
     'MetricsResult',
     'ComplexityClassifier',
     'MetricsAnalyzer',
     'BaseMetricsCalculator',
-    
-    # Адаптеры
     'RadonAdapter',
     'McCabeAdapter',
     'CustomMetricsCalculator',
