@@ -30,7 +30,7 @@ def run_analysis():
 
     # Определяем выходную директорию
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = OUTPUT_DIR or (PROJECT_ROOT / 'complexity_analyzer' / 'results' / f"{timestamp}_{ANALYSIS_MODE}")
+    output_dir = OUTPUT_DIR or (PROJECT_ROOT / 'complexity_analyzers' / 'results' / f"{timestamp}_{ANALYSIS_MODE}")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Конфигурация:")

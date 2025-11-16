@@ -133,118 +133,25 @@ class BigOBenchLoader:
         return samples
     
     def _load_from_remote(self) -> List[BigOBenchSample]:
-        """Загрузка из удаленного источника"""
-        samples = []
+        """Загрузка из Hugging Face"""
+        from data_loaders import load_dataset
         
-        # Здесь можно реализовать загрузку с GitHub или другого источника
-        # Пока возвращаем синтетические примеры
-        samples.extend(self._generate_synthetic_samples())
+        hf_dataset = load_dataset("your-org/bigobench-dataset", split="train")
+        
+        samples = []
+        for item in hf_dataset:
+            sample = BigOBenchSample(
+                code=item['code'],
+                complexity_class=item['complexity_class'],
+                algorithm_name=item['algorithm_name'],
+                language=item.get('language', 'python'),
+                metadata=item.get('metadata', {})
+            )
+            samples.append(sample)
         
         return samples
-    
-    def _generate_synthetic_samples(self) -> List[BigOBenchSample]:
-        """Генерация синтетических образцов для демонстрации"""
-        samples = []
-        
-        # O(1) - константная сложность
-        samples.append(BigOBenchSample(
-            code="""def constant_time(arr):
-    if len(arr) > 0:
-        return arr[0]
-    return None""",
-            complexity_class="constant",
-            algorithm_name="array_first_element",
-            metadata={"description": "Get first element of array"}
-        ))
-        
-        # O(n) - линейная сложность
-        samples.append(BigOBenchSample(
-            code="""def linear_search(arr, target):
-    for i, item in enumerate(arr):
-        if item == target:
-            return i
-    return -1""",
-            complexity_class="linear",
-            algorithm_name="linear_search",
-            metadata={"description": "Linear search algorithm"}
-        ))
-        
-        # O(log n) - логарифмическая сложность
-        samples.append(BigOBenchSample(
-            code="""def binary_search(arr, target):
-    left, right = 0, len(arr) - 1
-    while left <= right:
-        mid = (left + right) // 2
-        if arr[mid] == target:
-            return mid
-        elif arr[mid] < target:
-            left = mid + 1
-        else:
-            right = mid - 1
-    return -1""",
-            complexity_class="logarithmic",
-            algorithm_name="binary_search",
-            metadata={"description": "Binary search algorithm"}
-        ))
-        
-        # O(n²) - квадратичная сложность
-        samples.append(BigOBenchSample(
-            code="""def bubble_sort(arr):
-    n = len(arr)
-    for i in range(n):
-        for j in range(0, n - i - 1):
-            if arr[j] > arr[j + 1]:
-                arr[j], arr[j + 1] = arr[j + 1], arr[j]
-    return arr""",
-            complexity_class="quadratic",
-            algorithm_name="bubble_sort",
-            metadata={"description": "Bubble sort algorithm"}
-        ))
-        
-        # O(n log n) - линеарифметическая сложность
-        samples.append(BigOBenchSample(
-            code="""def merge_sort(arr):
-    if len(arr) <= 1:
-        return arr
-    
-    mid = len(arr) // 2
-    left = merge_sort(arr[:mid])
-    right = merge_sort(arr[mid:])
-    
-    return merge(left, right)
 
-def merge(left, right):
-    result = []
-    i = j = 0
     
-    while i < len(left) and j < len(right):
-        if left[i] <= right[j]:
-            result.append(left[i])
-            i += 1
-        else:
-            result.append(right[j])
-            j += 1
-    
-    result.extend(left[i:])
-    result.extend(right[j:])
-    return result""",
-            complexity_class="linearithmic",
-            algorithm_name="merge_sort",
-            metadata={"description": "Merge sort algorithm"}
-        ))
-        
-        # O(2^n) - экспоненциальная сложность
-        samples.append(BigOBenchSample(
-            code="""def fibonacci_recursive(n):
-    if n <= 1:
-        return n
-    return fibonacci_recursive(n - 1) + fibonacci_recursive(n - 2)""",
-            complexity_class="exponential",
-            algorithm_name="fibonacci_recursive",
-            metadata={"description": "Recursive Fibonacci calculation"}
-        ))
-        
-        return samples
     
     def _save_to_cache(self, cache_file: Path):
         """Сохранение в кеш"""

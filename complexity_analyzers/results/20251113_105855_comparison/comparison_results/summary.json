@@ -1,0 +1,30 @@
+{
+  "ast_advanced": {
+    "total_items": 100,
+    "successful_analyses": 100,
+    "accuracy": 0.55,
+    "f1_weighted": 0.7096774193548387,
+    "avg_time_per_item": 0.002031216621398926
+  },
+  "cfg_analyzer": {
+    "total_items": 100,
+    "successful_analyses": 100,
+    "accuracy": 0.28,
+    "f1_weighted": 0.4375,
+    "avg_time_per_item": 0.0014937925338745117
+  },
+  "ml_predictor": {
+    "total_items": 100,
+    "successful_analyses": 0,
+    "accuracy": 0,
+    "f1_weighted": 0,
+    "avg_time_per_item": 1.4891624450683594e-05
+  },
+  "hybrid_ensemble": {
+    "total_items": 100,
+    "successful_analyses": 0,
+    "accuracy": 0,
+    "f1_weighted": 0,
+    "avg_time_per_item": 1.3175010681152343e-05
+  }
+}
