@@ -6,6 +6,8 @@ from data_loaders.loaders import (
     analyze_bigobench,
     HuggingFaceLoader,
     LocalLoader,
+    ComplexityMapper,
+    create_label_encoder,
 )
 
 __all__ = [
@@ -14,4 +16,6 @@ __all__ = [
     'analyze_bigobench',
     'HuggingFaceLoader',
     'LocalLoader',
+    'ComplexityMapper',
+    'create_label_encoder',
 ]
