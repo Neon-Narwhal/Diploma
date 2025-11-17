@@ -6,19 +6,19 @@
 """
 
 # Импорты базовых классов
-from .base.enums import ComplexityClass, AnalyzerType
-from .base.analyzer import BaseComplexityAnalyzer, AnalysisContext
-from .base.result import ComplexityResult, ComplexityMetrics
+from .core.enums import ComplexityClass, AnalyzerType
+from .core.base import BaseComplexityAnalyzer, AnalysisContext
+from .core.result import ComplexityResult, ComplexityMetrics
 
 # ИСПРАВЛЕНО: Импорты ВСЕХ основных классов анализаторов
-from .ast_analyzers.advanced_analyzer import AdvancedASTAnalyzer
-from .runtime.profiler import RuntimeProfiler
-from .cfg.analyzer import CFGComplexityAnalyzer
-from .ml.predictor import MLComplexityPredictor
-from .dynamic.tracer import DynamicComplexityTracer
+from .analyzers.ast_advanced import AdvancedASTAnalyzer
+from .analyzers.runtime_profiler import RuntimeProfiler
+from .analyzers.cfg_analyzer import CFGComplexityAnalyzer
+from .analyzers.ml_predictor import MLComplexityPredictor
+from .analyzers.dynamic_tracer import DynamicComplexityTracer
 from .metrics.calculator import UniversalMetricsCalculator
-from .tools.profiler_tools import ToolsIntegrationAnalyzer
-from .hybrid.ensemble import HybridComplexityAnalyzer
+from .analyzers.tools_profiler import ToolsIntegrationAnalyzer
+from .analyzers.hybrid_ensemble import HybridComplexityAnalyzer
 
 __version__ = "0.1.0"
 

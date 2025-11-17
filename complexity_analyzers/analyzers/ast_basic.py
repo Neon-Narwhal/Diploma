@@ -1,8 +1,8 @@
 """Базовый AST-анализатор"""
 import ast
 from typing import Dict, Any, List, Optional, Set
-from complexity_analyzers.base.analyzer import BaseComplexityAnalyzer, AnalyzerType
-from complexity_analyzers.base.result import ComplexityResult, ComplexityClass, ComplexityMetrics
+from complexity_analyzers.core.base import BaseComplexityAnalyzer, AnalyzerType
+from complexity_analyzers.core.result import ComplexityResult, ComplexityClass, ComplexityMetrics
 
 class ASTNodeCounter(ast.NodeVisitor):
     """Счетчик AST-узлов"""

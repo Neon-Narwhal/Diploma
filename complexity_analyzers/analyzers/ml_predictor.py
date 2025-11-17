@@ -10,8 +10,8 @@ from sklearn.metrics import accuracy_score, classification_report
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 import xgboost as xgb
-from complexity_analyzers.base.analyzer import BaseComplexityAnalyzer, AnalyzerType
-from complexity_analyzers.base.result import ComplexityResult, ComplexityClass
+from complexity_analyzers.core.base import BaseComplexityAnalyzer, AnalyzerType
+from complexity_analyzers.core.result import ComplexityResult, ComplexityClass
 
 class FeatureExtractor:
     """Извлекатель признаков из кода"""

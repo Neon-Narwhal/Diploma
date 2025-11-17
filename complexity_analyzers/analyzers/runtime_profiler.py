@@ -8,8 +8,8 @@ import tempfile
 from typing import Dict, Any, List, Tuple, Optional, Callable
 import numpy as np
 from scipy.optimize import curve_fit
-from complexity_analyzers.base.analyzer import BaseComplexityAnalyzer, AnalyzerType
-from complexity_analyzers.base.result import ComplexityResult, ComplexityClass
+from complexity_analyzers.core.base import BaseComplexityAnalyzer, AnalyzerType
+from complexity_analyzers.core.result import ComplexityResult, ComplexityClass
 
 class TestDataGenerator:
     """Генератор тестовых данных"""

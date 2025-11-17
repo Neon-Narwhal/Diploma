@@ -5,12 +5,12 @@ import csv
 from pathlib import Path
 from typing import List, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from main_runner import create_analyzer, load_config
+from analyzers import create_analyzer, load_config
 import sys
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from complexity_analyzers.base.analyzer import AnalysisContext
+from complexity_analyzers.core.base import AnalysisContext
 from utils.io.file_utils import read_source_file
 
 def find_python_files(directory: Path, recursive: bool = True) -> List[Path]:

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 
 from complexity_analyzers.metrics.base import BaseMetricsCalculator
-from complexity_analyzers.base.enums import ComplexityClass
+from complexity_analyzers.core.enums import ComplexityClass
 
 @dataclass
 class MetricsResult:

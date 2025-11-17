@@ -4,11 +4,11 @@ import math
 from typing import Dict, Any, List, Optional, Set, Tuple
 from collections import defaultdict, deque
 
-from complexity_analyzers.base.analyzer import BaseComplexityAnalyzer, AnalyzerType, AnalysisContext
-from complexity_analyzers.base.result import ComplexityResult, ComplexityClass, ComplexityMetrics
-from complexity_analyzers.base.enums import PatternType, DataStructureUsage
-from complexity_analyzers.ast_analyzers.pattern_detectors import PatternDetectorRegistry
-from complexity_analyzers.ast_analyzers.feature_extractors import ASTFeatureExtractor
+from complexity_analyzers.core.base import BaseComplexityAnalyzer, AnalyzerType, AnalysisContext
+from core.result import ComplexityResult, ComplexityClass, ComplexityMetrics
+from core.enums import PatternType, DataStructureUsage
+from .ast_patterns import PatternDetectorRegistry
+from .ast_features import ASTFeatureExtractor
 
 class AdvancedLoopAnalyzer(ast.NodeVisitor):
     """Продвинутый анализатор циклов"""

@@ -5,7 +5,7 @@ from typing import Dict, List, Tuple, Optional, Callable
 from dataclasses import dataclass
 from enum import Enum
 
-from complexity_analyzers.base.enums import ComplexityClass
+from complexity_analyzers.core.enums import ComplexityClass
 
 class FittingMethod(Enum):
     """Методы подгонки кривых"""

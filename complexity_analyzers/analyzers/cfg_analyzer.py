@@ -3,8 +3,8 @@ import ast
 import networkx as nx
 from typing import Dict, Any, List, Optional, Set, Tuple
 from dataclasses import dataclass
-from complexity_analyzers.base.analyzer import BaseComplexityAnalyzer, AnalyzerType
-from complexity_analyzers.base.result import ComplexityResult, ComplexityClass, ComplexityMetrics
+from complexity_analyzers.core.base import BaseComplexityAnalyzer, AnalyzerType
+from complexity_analyzers.core.result import ComplexityResult, ComplexityClass, ComplexityMetrics
 import numpy as np
 
 @dataclass

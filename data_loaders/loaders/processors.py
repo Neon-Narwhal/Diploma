@@ -1,5 +1,5 @@
 """Обработчики и фильтры для датасетов"""
-from typing import Dict, List, Set, Optional, Callable
+from typing import Dict, List, Set, Optional
 from collections import Counter
 import logging
 

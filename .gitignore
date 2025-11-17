@@ -218,3 +218,4 @@ scr/
 complexity_analyzer/
 structure.txt
 datasets/cache
+mlruns/

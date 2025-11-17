@@ -1,6 +1,6 @@
 """Базовые классы и интерфейсы для анализаторов сложности"""
 
-from complexity_analyzers.base.enums import (
+from core.enums import (
     ComplexityClass, 
     AnalyzerType, 
     AnalyzerStatus,
@@ -8,15 +8,19 @@ from complexity_analyzers.base.enums import (
     PatternType,
     DataStructureUsage
 )
-from complexity_analyzers.base.analyzer import (
+from complexity_analyzers.core.base import (
     BaseComplexityAnalyzer,
     AnalysisContext,
     AnalyzerFactory
 )
-from complexity_analyzers.base.result import (
+from core.result import (
     ComplexityResult,
     ComplexityMetrics,
     ResultAggregator
+)
+
+from core.registry import (
+    AnalyzerRegistry
 )
 
 __all__ = [
@@ -37,4 +41,6 @@ __all__ = [
     'ComplexityResult',
     'ComplexityMetrics',
     'ResultAggregator',
+
+    'AnalyzerRegistry'
 ]

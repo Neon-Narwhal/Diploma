@@ -1,27 +1,31 @@
-"""Загрузчики и обработчики датасетов"""
+"""
+Data loaders для загрузки и обработки датасетов.
+"""
 
-from data_loaders.loaders.loaders import HuggingFaceLoader, LocalLoader
-from data_loaders.loaders.processors import (
+from .bigobench_loader import BigOBenchLoader
+from .dataset import BigOBenchDataset
+from .loaders import LocalLoader, HuggingFaceLoader
+from .storage import DatasetWriter, DatasetSplitter
+from .mappers import ComplexityMapper
+from .processors import (
     ComplexityClassFilter,
     DatasetJoiner,
     DataValidator
 )
-from data_loaders.loaders.storage import DatasetWriter, DatasetSplitter
-from data_loaders.loaders.dataset import BigOBenchDataset
-from data_loaders.loaders.analyze import BigOBenchAnalyzer, analyze_bigobench
-from data_loaders.loaders.mappers import ComplexityMapper, create_label_encoder  # НОВОЕ
+
+# ComplexityProcessor импортируется из правильного места
+from complexity_analyzers.processors import ComplexityProcessor
 
 __all__ = [
-    'HuggingFaceLoader',
+    'BigOBenchLoader',
+    'BigOBenchDataset',
     'LocalLoader',
+    'HuggingFaceLoader',
+    'DatasetWriter',
+    'DatasetSplitter',
+    'ComplexityMapper',
     'ComplexityClassFilter',
     'DatasetJoiner',
     'DataValidator',
-    'DatasetWriter',
-    'DatasetSplitter',
-    'BigOBenchDataset',
-    'BigOBenchAnalyzer',
-    'analyze_bigobench',
-    'ComplexityMapper',  # НОВОЕ
-    'create_label_encoder',  # НОВОЕ
+    'ComplexityProcessor', 
 ]

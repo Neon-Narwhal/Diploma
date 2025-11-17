@@ -2,8 +2,8 @@
 from typing import Dict, Any, List, Optional, Tuple
 import numpy as np
 from collections import defaultdict, Counter
-from complexity_analyzers.base.analyzer import BaseComplexityAnalyzer, AnalyzerType, AnalysisContext
-from complexity_analyzers.base.result import ComplexityResult, ComplexityClass, ResultAggregator
+from complexity_analyzers.core.base import BaseComplexityAnalyzer, AnalyzerType, AnalysisContext
+from complexity_analyzers.core.result import ComplexityResult, ComplexityClass, ResultAggregator
 
 class WeightingStrategy:
     """Стратегия весов для ансамбля"""

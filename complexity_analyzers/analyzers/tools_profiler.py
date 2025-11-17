@@ -4,8 +4,8 @@ import tempfile
 import json
 import time
 from typing import Dict, Any, List, Optional
-from complexity_analyzers.base.analyzer import BaseComplexityAnalyzer, AnalyzerType
-from complexity_analyzers.base.result import ComplexityResult, ComplexityClass
+from complexity_analyzers.core.base import BaseComplexityAnalyzer, AnalyzerType
+from complexity_analyzers.core.result import ComplexityResult, ComplexityClass
 
 class PySpyIntegration:
     """Интеграция с py-spy профайлером"""
