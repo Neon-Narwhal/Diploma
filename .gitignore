@@ -211,7 +211,7 @@ __marimo__/
 tokenizer.json
 tests.ipynb
 data/
-notebooks/notebook.ipynb
+notebooks/
 exps.ipynb
 checkpoints/
 scr/
