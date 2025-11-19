@@ -1,0 +1,1215 @@
+{
+  "total_items": 100,
+  "successful_analyses": 0,
+  "metrics": {},
+  "time_statistics": {
+    "total_time": 0.02332592010498047,
+    "avg_time_per_item": 0.0002332592010498047,
+    "items_per_second": 4287.076331820598
+  },
+  "confidence_statistics": {
+    "avg_confidence": 0
+  },
+  "individual_results": [
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.001016855239868164,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0004994869232177734,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0004730224609375,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00033211708068847656,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002999305725097656,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00026917457580566406,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002789497375488281,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002536773681640625,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.000217437744140625,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00022649765014648438,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00020599365234375,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002779960632324219,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002970695495605469,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00030732154846191406,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00024390220642089844,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.000209808349609375,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00020837783813476562,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00023245811462402344,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00022268295288085938,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00024819374084472656,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002315044403076172,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002288818359375,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00020813941955566406,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00021719932556152344,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0001938343048095703,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00018978118896484375,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002429485321044922,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002391338348388672,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00021600723266601562,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00020694732666015625,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002181529998779297,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002186298370361328,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002028942108154297,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002491474151611328,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00018215179443359375,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0001881122589111328,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00016760826110839844,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00016760826110839844,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00016188621520996094,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00020265579223632812,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00021338462829589844,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00020837783813476562,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0001926422119140625,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.000202178955078125,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00022268295288085938,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00020456314086914062,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002167224884033203,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00018596649169921875,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00020599365234375,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00024008750915527344,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0004127025604248047,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00023365020751953125,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00023651123046875,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00021791458129882812,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00023865699768066406,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00023889541625976562,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002269744873046875,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00020241737365722656,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00019669532775878906,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0001678466796875,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00017547607421875,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00018930435180664062,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00016689300537109375,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00017952919006347656,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0001704692840576172,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00016260147094726562,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00017404556274414062,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00023937225341796875,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0001697540283203125,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0001785755157470703,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00016427040100097656,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00016832351684570312,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0001685619354248047,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00022149085998535156,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00018405914306640625,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00017404556274414062,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00017333030700683594,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00020933151245117188,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00018215179443359375,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00017189979553222656,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00016260147094726562,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002574920654296875,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00024890899658203125,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00024509429931640625,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00025653839111328125,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002474784851074219,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002467632293701172,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.000225067138671875,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002586841583251953,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002396106719970703,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002484321594238281,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002512931823730469,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002522468566894531,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002193450927734375,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00021958351135253906,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00023031234741210938,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00023889541625976562,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00024080276489257812,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.00025081634521484375,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    },
+    {
+      "file_path": "from_dataset",
+      "analyzer_name": "ast_advanced",
+      "success": false,
+      "errors": [
+        "No module named 'complexity_analyzers.base'"
+      ],
+      "analysis_time": 0.0002434253692626953,
+      "true_complexity": "constant",
+      "predicted_complexity": "ERROR",
+      "confidence": 0.0
+    }
+  ]
+}

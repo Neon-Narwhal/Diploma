@@ -39,8 +39,8 @@ DATA_DIR = PROJECT_ROOT / 'data'
 RESULTS_DIR = PROJECT_ROOT / 'complexity_analyzers/results'
 
 # Пути к тестовым данным
-DEFAULT_PYTHON_DATASET = DATA_DIR / 'python_data.jsonl'
-
+DEFAULT_PYTHON_DATASET = DATA_DIR / 'bigobench_mapped/test.jsonl'
+#DEFAULT_PYTHON_DATASET = DATA_DIR / 'python_data.jsonl'
 
 # ============= ПАРАМЕТРЫ ЗАПУСКА =============
 # Настройте эти параметры для запуска анализа

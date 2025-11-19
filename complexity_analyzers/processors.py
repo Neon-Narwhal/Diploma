@@ -112,7 +112,7 @@ class ComplexityProcessor:
             
             # Создание контекста
             logger.debug(f"📋 Создание контекста анализа...")
-            from complexity_analyzers.base.analyzer import AnalysisContext
+            from complexity_analyzers.core.base import AnalysisContext
             
             context = AnalysisContext(
                 source_code=source_code,
@@ -158,7 +158,7 @@ class ComplexityProcessor:
                 logger.info(f"   Analysis time: {analysis_time:.4f}s")
 
             # Проверка на успешность
-            from complexity_analyzers.base.enums import ComplexityClass
+            from complexity_analyzers.core.enums import ComplexityClass
             success = (
                 result.confidence >= 0.3 and
                 result.complexity_class != ComplexityClass.UNKNOWN and
