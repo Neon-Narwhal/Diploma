@@ -40,11 +40,11 @@ OUTPUT_DIR = None
 # Анализаторы для запуска (None = все включенные)
 # Варианты: ['ast_advanced'], ['runtime_profiler'], ['ast_advanced', 'hybrid_ensemble'], None
 ANALYZERS_TO_RUN = [
-    'ast_advanced',      # Быстрый и работающий
-    #'cfg_analyzer',      # CFG анализатор  
+    #'ast_advanced',      # Быстрый и работающий
+    'cfg_analyzer',      # CFG анализатор  
     #'ml_predictor',      # ML предиктор
     #'hybrid_ensemble'    # Гибридный ансамбль
-    # 'runtime_profiler' - ИСКЛЮЧЕН (медленный)
+    # 'runtime_profiler' #- ИСКЛЮЧЕН (медленный)
 ]
 
 # Максимальное количество файлов (None = все)
@@ -77,13 +77,13 @@ OUTPUT_FORMATS = ['json', 'csv']
 AVAILABLE_ANALYZERS = [
     'ast_basic',           # Базовый AST
     'ast_advanced',        # Продвинутый AST
-    #'runtime_profiler',    # Runtime профайлер
-    #'cfg_analyzer',        # CFG анализатор
-    #'ml_predictor',        # ML предиктор
-    #'dynamic_tracer',      # Динамическая трассировка
-    #'metrics_calculator',  # Метрический анализатор
-    #'tools_integration',   # Внешние инструменты
-    #'hybrid_ensemble'      # Гибридный ансамбль
+    'runtime_profiler',    # Runtime профайлер
+    'cfg_analyzer',        # CFG анализатор
+    'ml_predictor',        # ML предиктор
+    'dynamic_tracer',      # Динамическая трассировка
+    'metrics_calculator',  # Метрический анализатор
+    'tools_integration',   # Внешние инструменты
+    'hybrid_ensemble'      # Гибридный ансамбль
 ]
 
 
@@ -197,7 +197,7 @@ RECURSIVE_SEARCH = True
 
 # Параллельная обработка
 USE_MULTIPROCESSING = True
-MAX_WORKERS = 4
+MAX_WORKERS = 8
 
 
 # ============= ЛОГИРОВАНИЕ =============

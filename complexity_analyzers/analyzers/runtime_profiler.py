@@ -89,10 +89,10 @@ class RuntimeProfiler(BaseComplexityAnalyzer):
     """Профайлер времени выполнения"""
     
     def __init__(self):
-        super().__init__("runtime_profiler", AnalyzerType.RUNTIME_PROFILER)
+        super().__init__("runtime_profiler", AnalyzerType.RUNTIME)
         self.test_sizes: List[int] = [10, 50, 100, 200, 500, 1000]
         self.iterations: int = 5
-        self.timeout: int = 30
+        self.timeout: int = 5
         self.data_generator = TestDataGenerator()
         self.complexity_fitter = ComplexityFitter()
     

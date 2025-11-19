@@ -8,6 +8,8 @@ from typing import List, Dict, Any, Optional
 import statistics
 import traceback
 import re
+from multiprocessing import Pool, TimeoutError
+from functools import partial
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +168,82 @@ def group_complexity(value: str) -> str:
     return 'unknown'
 
 
+def _worker_analyze(item: Dict, item_index: int, analyzer_name: str) -> Dict:
+    """Рабочая функция для параллелизации (глобальная)."""
+    start_time = time.time()
+    
+    true_complexity = item.get('complexity')
+    source_code = item.get('src') or item.get('code')
+    
+    if not source_code:
+        return {
+            'success': False,
+            'errors': ['Нет кода'],
+            'analysis_time': time.time() - start_time,
+            'analyzer_name': analyzer_name,
+            'true_complexity': true_complexity,
+            'predicted_complexity': None,
+            'confidence': 0.0,
+        }
 
+    try:
+        from complexity_analyzers import create_analyzer
+        from complexity_analyzers.core.base import AnalysisContext
+        from complexity_analyzers.core.enums import ComplexityClass
+        
+        analyzer = create_analyzer(analyzer_name)
+        
+        context = AnalysisContext(
+            source_code=source_code,
+            language='python',
+            timeout=5,  # Внутренний таймаут
+            debug_mode=False
+        )
+        
+        result = analyzer.analyze(context)
+        analysis_time = time.time() - start_time
+        
+        # Извлечение предсказания
+        complexity_class = result.complexity_class
+        
+        if hasattr(complexity_class, 'to_notation'):
+            raw_prediction = complexity_class.to_notation()
+        elif hasattr(complexity_class, 'notation'):
+            raw_prediction = complexity_class.notation
+        else:
+            raw_prediction = str(complexity_class)
+        
+        predicted_complexity = normalize_complexity(raw_prediction)
+        
+        success = (
+            result.confidence >= 0.3 and
+            result.complexity_class != ComplexityClass.UNKNOWN and
+            not result.errors
+        )
+        
+        return {
+            'file_path': item.get('path', f"problem_{item.get('problem_id', 'unknown')}"),
+            'analyzer_name': analyzer_name,
+            'true_complexity': true_complexity,
+            'predicted_complexity': predicted_complexity,
+            'confidence': result.confidence,
+            'analysis_time': analysis_time,
+            'success': success,
+            'errors': result.errors,
+            'warnings': getattr(result, 'warnings', [])
+        }
+        
+    except Exception as e:
+        return {
+            'file_path': item.get('path', 'unknown'),
+            'analyzer_name': analyzer_name,
+            'success': False,
+            'errors': [str(e)],
+            'analysis_time': time.time() - start_time,
+            'true_complexity': true_complexity,
+            'predicted_complexity': None,
+            'confidence': 0.0
+        }
 
 class ComplexityProcessor:
     """Процессор для анализа сложности с поддержкой многовариантных классов."""
@@ -307,6 +384,7 @@ class ComplexityProcessor:
 
         try:
             analyzer = self.create_analyzer(analyzer_name)
+
             
             from complexity_analyzers.core.base import AnalysisContext
             context = AnalysisContext(
@@ -384,7 +462,7 @@ class ComplexityProcessor:
             }
 
     def process_path(self, input_path: Path, output_dir: Path, max_items: Optional[int]) -> Dict:
-        """Обрабатывает путь."""
+        """Обрабатывает путь с параллелизацией."""
         logger.info(f"🗂️ Обработка: {input_path}")
         
         if input_path.suffix == '.jsonl':
@@ -412,13 +490,8 @@ class ComplexityProcessor:
             logger.info(f"\n🔍 Анализатор: {analyzer_name}")
             logger.info("=" * 60)
             
-            analyzer_results = []
-            for i, item in enumerate(items):
-                if i > 0 and i % 100 == 0:
-                    logger.info(f"   Прогресс: {i}/{len(items)}...")
-                
-                result = self.analyze_single_item(item, analyzer_name, i)
-                analyzer_results.append(result)
+            # Параллельная обработка
+            analyzer_results = self._analyze_parallel(items, analyzer_name)
             
             logger.info(f"✅ {analyzer_name} завершён")
             all_results[analyzer_name] = self._aggregate_results(analyzer_results, analyzer_name)
@@ -426,6 +499,62 @@ class ComplexityProcessor:
 
         self._save_combined_summary(all_results, output_dir)
         return all_results
+    
+    def _analyze_parallel(self, items: List[Dict], analyzer_name: str) -> List[Dict]:
+        """Параллельный анализ."""
+        num_workers = self.max_workers if self.max_workers > 1 else 4
+        timeout_per_item = 10  # секунд
+        
+        logger.info(f"🚀 Запуск {num_workers} процессов с таймаутом {timeout_per_item}s")
+        
+        results = []
+        
+        with Pool(processes=num_workers) as pool:
+            async_results = []
+            
+            for i, item in enumerate(items):
+                async_result = pool.apply_async(
+                    _worker_analyze,
+                    (item, i, analyzer_name)
+                )
+                async_results.append((i, async_result))
+            
+            for i, async_result in async_results:
+                try:
+                    result = async_result.get(timeout=timeout_per_item)
+                    results.append(result)
+                    
+                    if (i + 1) % 100 == 0:
+                        logger.info(f"   Прогресс: {i + 1}/{len(items)}...")
+                        
+                except TimeoutError:
+                    logger.warning(f"⏱️ Таймаут на образце #{i}")
+                    results.append({
+                        'success': False,
+                        'errors': ['Timeout exceeded'],
+                        'analysis_time': timeout_per_item,
+                        'analyzer_name': analyzer_name,
+                        'true_complexity': items[i].get('complexity'),
+                        'predicted_complexity': None,
+                        'confidence': 0.0,
+                    })
+                except Exception as e:
+                    logger.error(f"❌ Ошибка #{i}: {e}")
+                    results.append({
+                        'success': False,
+                        'errors': [str(e)],
+                        'analysis_time': 0.0,
+                        'analyzer_name': analyzer_name,
+                        'true_complexity': items[i].get('complexity'),
+                        'predicted_complexity': None,
+                        'confidence': 0.0,
+                    })
+        
+        return results
+
+    def _analyze_single_wrapper(self, item: Dict, item_index: int, analyzer_name: str) -> Dict:
+        """Обёртка для параллельного вызова (без self)."""
+        return self.analyze_single_item(item, analyzer_name, item_index)
 
     def _find_files(self, path: Path) -> List[Path]:
         """Находит Python файлы."""

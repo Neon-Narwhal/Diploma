@@ -537,7 +537,7 @@ class CFGComplexityAnalyzer(BaseComplexityAnalyzer):
     """Анализатор сложности на основе CFG"""
     
     def __init__(self):
-        super().__init__("cfg_analyzer", AnalyzerType.CFG_ANALYZER)
+        super().__init__("cfg_analyzer", AnalyzerType.CFG)
         self.cfg_builder = CFGBuilder()
         self.cfg_analyzer = CFGAnalyzer()
     
@@ -583,35 +583,43 @@ class CFGComplexityAnalyzer(BaseComplexityAnalyzer):
             )
     
     def _infer_complexity_from_cfg(self, metrics: Dict[str, Any]) -> ComplexityClass:
-        """Вывод класса сложности из метрик CFG"""
-        nesting_depth = metrics.get('nesting_depth', 0)
+        """Определяет класс сложности с возможностью точной нотации."""
         loop_nodes = metrics.get('loop_nodes', 0)
-        back_edges = metrics.get('back_edges', 0)
-        cyclomatic_complexity = metrics.get('cyclomatic_complexity', 1)
+        nested_loop_depth = metrics.get('nested_loop_depth', 0)
+        decision_nodes = metrics.get('decision_nodes', 0)
+        nodes_count = metrics.get('nodes_count', 0)
         
-        # Рекурсивные функции или сложные циклы
-        if back_edges > loop_nodes * 2:  # Много обратных связей
-            return ComplexityClass.EXPONENTIAL
+        # Нет циклов
+        if loop_nodes == 0:
+            if decision_nodes > nodes_count * 0.3:
+                return ComplexityClass.LOGARITHMIC
+            return ComplexityClass.CONSTANT
         
-        # Глубокая вложенность
-        if nesting_depth >= 4:
-            return ComplexityClass.EXPONENTIAL
-        elif nesting_depth == 3:
-            return ComplexityClass.CUBIC
-        elif nesting_depth == 2:
-            return ComplexityClass.QUADRATIC
-        elif nesting_depth == 1 or loop_nodes > 0:
-            return ComplexityClass.LINEAR
+        # Один цикл
+        if nested_loop_depth == 1:
+            if decision_nodes > 3:
+                return ComplexityClass.LINEARITHMIC  # O(nlogn)
+            return ComplexityClass.LINEAR  # O(n)
         
-        # Высокая цикломатическая сложность
-        if cyclomatic_complexity > 20:
-            return ComplexityClass.EXPONENTIAL
-        elif cyclomatic_complexity > 10:
-            return ComplexityClass.QUADRATIC
-        elif cyclomatic_complexity > 5:
-            return ComplexityClass.LINEAR
+        # Два вложенных цикла
+        if nested_loop_depth == 2:
+            return ComplexityClass.QUADRATIC  # O(n^2)
+        
+        # Три вложенных цикла
+        if nested_loop_depth == 3:
+            return ComplexityClass.CUBIC  # O(n^3)
+        
+        # Больше трёх
+        if nested_loop_depth >= 4:
+            return ComplexityClass.POLYNOMIAL  # O(n^k)
+        
+        # Несколько последовательных циклов
+        if loop_nodes > 1:
+            return ComplexityClass.LINEAR  # O(n+m)
         
         return ComplexityClass.CONSTANT
+
+
     
     def _calculate_confidence(self, metrics: Dict[str, Any]) -> float:
         """Расчет уверенности в результате"""
