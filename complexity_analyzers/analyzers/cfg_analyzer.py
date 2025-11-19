@@ -1,335 +1,21 @@
-"""Анализатор графа потока управления"""
+"""Анализатор графа потока управления (CFG v2.0)"""
 import ast
 import networkx as nx
 from typing import Dict, Any, List, Optional, Set, Tuple
 from dataclasses import dataclass
+
 from complexity_analyzers.core.base import BaseComplexityAnalyzer, AnalyzerType
 from complexity_analyzers.core.result import ComplexityResult, ComplexityClass, ComplexityMetrics
 import numpy as np
 
-@dataclass
-class CFGNode:
-    """Узел графа потока управления"""
-    id: int
-    type: str  # 'statement', 'condition', 'loop', 'function_entry', 'function_exit'
-    line_number: int
-    code: str = ""
-    ast_node: Optional[ast.AST] = None
-    
-    def __hash__(self):
-        return hash(self.id)
+# Импорты новых компонентов CFG v2.0
+from complexity_analyzers.analyzers.cfg_builder import PythonCFGBuilder
+from complexity_analyzers.analyzers.cfg_data_flow import DataFlowAnalyzer
+from complexity_analyzers.analyzers.cfg_iterator_analysis import IteratorRangeAnalyzer
+from complexity_analyzers.analyzers.cfg_library_calls import LibraryCallRecognizer
+#from complexity_analyzers.analyzers.cfg_multi_variable import MultiVariableTracker
+from complexity_analyzers.analyzers.cfg_complexity_composer import ComplexityComposer
 
-@dataclass
-class CFGEdge:
-    """Ребро графа потока управления"""
-    source: CFGNode
-    target: CFGNode
-    type: str  # 'sequential', 'true_branch', 'false_branch', 'loop_back', 'call', 'return'
-    condition: Optional[str] = None
-
-class CFGBuilder:
-    """Построитель графа потока управления"""
-    
-    def __init__(self):
-        self.nodes: List[CFGNode] = []
-        self.edges: List[CFGEdge] = []
-        self.node_counter = 0
-        self.current_function = None
-    
-    def build_cfg(self, source_code: str) -> nx.DiGraph:
-        """Построение CFG из исходного кода"""
-        try:
-            tree = ast.parse(source_code)
-            self._reset()
-            
-            # Создаем граф
-            graph = nx.DiGraph()
-            
-            # Обходим AST и строим CFG
-            self._visit_node(tree, graph)
-            
-            return graph
-            
-        except Exception as e:
-            raise ValueError(f"Error building CFG: {e}")
-    
-    def _reset(self):
-        """Сброс состояния билдера"""
-        self.nodes.clear()
-        self.edges.clear()
-        self.node_counter = 0
-        self.current_function = None
-    
-    def _create_node(self, node_type: str, line_number: int, 
-                    code: str = "", ast_node: ast.AST = None) -> CFGNode:
-        """Создание нового узла CFG"""
-        cfg_node = CFGNode(
-            id=self.node_counter,
-            type=node_type,
-            line_number=line_number,
-            code=code,
-            ast_node=ast_node
-        )
-        self.nodes.append(cfg_node)
-        self.node_counter += 1
-        return cfg_node
-    
-    def _add_edge(self, graph: nx.DiGraph, source: CFGNode, target: CFGNode, 
-                 edge_type: str = 'sequential', condition: str = None):
-        """Добавление ребра в граф"""
-        edge = CFGEdge(source, target, edge_type, condition)
-        self.edges.append(edge)
-        
-        graph.add_node(source.id, **{
-            'type': source.type,
-            'line': source.line_number,
-            'code': source.code
-        })
-        graph.add_node(target.id, **{
-            'type': target.type,
-            'line': target.line_number,
-            'code': target.code
-        })
-        
-        graph.add_edge(source.id, target.id, **{
-            'type': edge_type,
-            'condition': condition
-        })
-    
-    def _visit_node(self, node: ast.AST, graph: nx.DiGraph, 
-                   entry_node: CFGNode = None) -> Tuple[CFGNode, CFGNode]:
-        """Обход узла AST и построение CFG"""
-        if isinstance(node, ast.Module):
-            return self._visit_module(node, graph)
-        elif isinstance(node, ast.FunctionDef):
-            return self._visit_function(node, graph)
-        elif isinstance(node, ast.If):
-            return self._visit_if(node, graph, entry_node)
-        elif isinstance(node, ast.For):
-            return self._visit_for(node, graph, entry_node)
-        elif isinstance(node, ast.While):
-            return self._visit_while(node, graph, entry_node)
-        elif isinstance(node, ast.Return):
-            return self._visit_return(node, graph)
-        elif isinstance(node, (ast.Break, ast.Continue)):
-            return self._visit_break_continue(node, graph)
-        else:
-            return self._visit_statement(node, graph)
-    
-    def _visit_module(self, node: ast.Module, graph: nx.DiGraph) -> Tuple[CFGNode, CFGNode]:
-        """Обработка модуля"""
-        if not node.body:
-            entry = self._create_node('module_entry', 1, 'module start')
-            exit = self._create_node('module_exit', 1, 'module end')
-            self._add_edge(graph, entry, exit)
-            return entry, exit
-        
-        entry = self._create_node('module_entry', 1, 'module start')
-        current = entry
-        
-        for stmt in node.body:
-            stmt_entry, stmt_exit = self._visit_node(stmt, graph)
-            if current != entry:
-                self._add_edge(graph, current, stmt_entry)
-            else:
-                self._add_edge(graph, entry, stmt_entry)
-            current = stmt_exit
-        
-        exit = self._create_node('module_exit', getattr(node.body[-1], 'lineno', 1), 'module end')
-        self._add_edge(graph, current, exit)
-        
-        return entry, exit
-    
-    def _visit_function(self, node: ast.FunctionDef, graph: nx.DiGraph) -> Tuple[CFGNode, CFGNode]:
-        """Обработка функции"""
-        prev_function = self.current_function
-        self.current_function = node.name
-        
-        entry = self._create_node(
-            'function_entry', 
-            node.lineno, 
-            f'def {node.name}(...):',
-            node
-        )
-        
-        if not node.body:
-            exit = self._create_node('function_exit', node.lineno, 'return', node)
-            self._add_edge(graph, entry, exit)
-        else:
-            current = entry
-            
-            for stmt in node.body:
-                stmt_entry, stmt_exit = self._visit_node(stmt, graph)
-                self._add_edge(graph, current, stmt_entry)
-                current = stmt_exit
-            
-            exit = self._create_node(
-                'function_exit', 
-                getattr(node.body[-1], 'lineno', node.lineno), 
-                'return',
-                node
-            )
-            self._add_edge(graph, current, exit)
-        
-        self.current_function = prev_function
-        return entry, exit
-    
-    def _visit_if(self, node: ast.If, graph: nx.DiGraph, 
-                 entry_node: CFGNode = None) -> Tuple[CFGNode, CFGNode]:
-        """Обработка условного оператора"""
-        condition_node = self._create_node(
-            'condition', 
-            node.lineno, 
-            f'if {ast.unparse(node.test) if hasattr(ast, "unparse") else "condition"}:',
-            node
-        )
-        
-        # True ветка
-        true_entry = None
-        true_exit = None
-        
-        if node.body:
-            current = None
-            for stmt in node.body:
-                stmt_entry, stmt_exit = self._visit_node(stmt, graph)
-                if current is None:
-                    true_entry = stmt_entry
-                    self._add_edge(graph, condition_node, stmt_entry, 'true_branch', 'True')
-                else:
-                    self._add_edge(graph, current, stmt_entry)
-                current = stmt_exit
-            true_exit = current
-        
-        # False ветка (else)
-        false_entry = None
-        false_exit = None
-        
-        if node.orelse:
-            current = None
-            for stmt in node.orelse:
-                stmt_entry, stmt_exit = self._visit_node(stmt, graph)
-                if current is None:
-                    false_entry = stmt_entry
-                    self._add_edge(graph, condition_node, stmt_entry, 'false_branch', 'False')
-                else:
-                    self._add_edge(graph, current, stmt_entry)
-                current = stmt_exit
-            false_exit = current
-        
-        # Создаем узел схождения
-        merge_node = self._create_node('merge', node.lineno, 'endif')
-        
-        if true_exit:
-            self._add_edge(graph, true_exit, merge_node)
-        else:
-            self._add_edge(graph, condition_node, merge_node, 'true_branch', 'True')
-        
-        if false_exit:
-            self._add_edge(graph, false_exit, merge_node)
-        else:
-            self._add_edge(graph, condition_node, merge_node, 'false_branch', 'False')
-        
-        return condition_node, merge_node
-    
-    def _visit_for(self, node: ast.For, graph: nx.DiGraph, 
-                  entry_node: CFGNode = None) -> Tuple[CFGNode, CFGNode]:
-        """Обработка цикла for"""
-        loop_header = self._create_node(
-            'loop', 
-            node.lineno, 
-            f'for {ast.unparse(node.target) if hasattr(ast, "unparse") else "var"} in ...:',
-            node
-        )
-        
-        # Тело цикла
-        if node.body:
-            current = None
-            body_entry = None
-            
-            for stmt in node.body:
-                stmt_entry, stmt_exit = self._visit_node(stmt, graph)
-                if current is None:
-                    body_entry = stmt_entry
-                    self._add_edge(graph, loop_header, stmt_entry, 'true_branch', 'continue')
-                else:
-                    self._add_edge(graph, current, stmt_entry)
-                current = stmt_exit
-            
-            # Обратная связь к заголовку цикла
-            self._add_edge(graph, current, loop_header, 'loop_back')
-        
-        # Выход из цикла
-        exit_node = self._create_node('statement', node.lineno, 'end for')
-        self._add_edge(graph, loop_header, exit_node, 'false_branch', 'break')
-        
-        # Обработка else ветки
-        if node.orelse:
-            else_current = None
-            for stmt in node.orelse:
-                stmt_entry, stmt_exit = self._visit_node(stmt, graph)
-                if else_current is None:
-                    self._add_edge(graph, loop_header, stmt_entry, 'else_branch')
-                else:
-                    self._add_edge(graph, else_current, stmt_entry)
-                else_current = stmt_exit
-            
-            if else_current:
-                self._add_edge(graph, else_current, exit_node)
-        
-        return loop_header, exit_node
-    
-    def _visit_while(self, node: ast.While, graph: nx.DiGraph, 
-                    entry_node: CFGNode = None) -> Tuple[CFGNode, CFGNode]:
-        """Обработка цикла while"""
-        loop_header = self._create_node(
-            'loop', 
-            node.lineno, 
-            f'while {ast.unparse(node.test) if hasattr(ast, "unparse") else "condition"}:',
-            node
-        )
-        
-        # Тело цикла
-        if node.body:
-            current = None
-            
-            for stmt in node.body:
-                stmt_entry, stmt_exit = self._visit_node(stmt, graph)
-                if current is None:
-                    self._add_edge(graph, loop_header, stmt_entry, 'true_branch', 'True')
-                else:
-                    self._add_edge(graph, current, stmt_entry)
-                current = stmt_exit
-            
-            # Обратная связь к заголовку цикла
-            self._add_edge(graph, current, loop_header, 'loop_back')
-        
-        # Выход из цикла
-        exit_node = self._create_node('statement', node.lineno, 'end while')
-        self._add_edge(graph, loop_header, exit_node, 'false_branch', 'False')
-        
-        return loop_header, exit_node
-    
-    def _visit_return(self, node: ast.Return, graph: nx.DiGraph) -> Tuple[CFGNode, CFGNode]:
-        """Обработка return"""
-        return_node = self._create_node(
-            'return', 
-            node.lineno, 
-            f'return {ast.unparse(node.value) if node.value and hasattr(ast, "unparse") else ""}',
-            node
-        )
-        return return_node, return_node
-    
-    def _visit_break_continue(self, node: ast.AST, graph: nx.DiGraph) -> Tuple[CFGNode, CFGNode]:
-        """Обработка break/continue"""
-        stmt_type = 'break' if isinstance(node, ast.Break) else 'continue'
-        stmt_node = self._create_node(stmt_type, node.lineno, stmt_type, node)
-        return stmt_node, stmt_node
-    
-    def _visit_statement(self, node: ast.AST, graph: nx.DiGraph) -> Tuple[CFGNode, CFGNode]:
-        """Обработка обычного оператора"""
-        code = ast.unparse(node) if hasattr(ast, 'unparse') else str(type(node).__name__)
-        stmt_node = self._create_node('statement', getattr(node, 'lineno', 1), code, node)
-        return stmt_node, stmt_node
 
 class CFGAnalyzer:
     """Анализатор метрик CFG"""
@@ -365,6 +51,7 @@ class CFGAnalyzer:
             
             # Метрики сложности
             'nesting_depth': self._calculate_nesting_depth(),
+            'nested_loop_depth': self._count_nested_loops(),
             'fan_in_out': self._calculate_fan_metrics(),
             
             # Структурные метрики
@@ -380,8 +67,6 @@ class CFGAnalyzer:
         if not self.graph:
             return 1
         
-        # M = E - N + 2P
-        # где E - количество ребер, N - количество узлов, P - количество связных компонентов
         edges = self.graph.number_of_edges()
         nodes = self.graph.number_of_nodes()
         components = len(list(nx.weakly_connected_components(self.graph)))
@@ -394,15 +79,15 @@ class CFGAnalyzer:
             return 0
         
         try:
-            # Для DAG можем использовать топологическую сортировку
             if nx.is_directed_acyclic_graph(self.graph):
                 return nx.dag_longest_path_length(self.graph)
             else:
-                # Для графа с циклами приближенная оценка
                 max_length = 0
                 for node in self.graph.nodes():
                     try:
-                        lengths = nx.single_source_shortest_path_length(self.graph, node, cutoff=50)
+                        lengths = nx.single_source_shortest_path_length(
+                            self.graph, node, cutoff=50
+                        )
                         if lengths:
                             max_length = max(max_length, max(lengths.values()))
                     except:
@@ -420,7 +105,6 @@ class CFGAnalyzer:
             if nx.is_strongly_connected(self.graph):
                 return nx.average_shortest_path_length(self.graph)
             else:
-                # Для несвязного графа вычисляем среднее по компонентам
                 total_length = 0
                 total_pairs = 0
                 
@@ -457,7 +141,7 @@ class CFGAnalyzer:
         return count
     
     def _calculate_nesting_depth(self) -> int:
-        """Вычисление глубины вложенности"""
+        """Вычисление глубины вложенности (циклы + условия)"""
         max_depth = 0
         
         def dfs_depth(node_id: int, current_depth: int, visited: Set[int]):
@@ -472,14 +156,12 @@ class CFGAnalyzer:
             node_data = self.graph.nodes[node_id]
             new_depth = current_depth
             
-            # Увеличиваем глубину для циклов и условий
             if node_data.get('type') in ['loop', 'condition']:
                 new_depth += 1
             
             for successor in self.graph.successors(node_id):
                 dfs_depth(successor, new_depth, visited.copy())
         
-        # Начинаем с узлов без предшественников
         entry_nodes = [n for n in self.graph.nodes() if self.graph.in_degree(n) == 0]
         
         for entry_node in entry_nodes:
@@ -487,10 +169,39 @@ class CFGAnalyzer:
         
         return max_depth
     
+    def _count_nested_loops(self) -> int:
+        """Подсчёт максимальной вложенности ТОЛЬКО циклов"""
+        max_loop_depth = 0
+        
+        def dfs_loop_depth(node_id: int, current_loop_depth: int, visited: Set[int]):
+            nonlocal max_loop_depth
+            
+            if node_id in visited:
+                return
+            
+            visited.add(node_id)
+            node_data = self.graph.nodes[node_id]
+            
+            new_depth = current_loop_depth
+            if node_data.get('type') == 'loop':
+                new_depth += 1
+                max_loop_depth = max(max_loop_depth, new_depth)
+            
+            for successor in self.graph.successors(node_id):
+                dfs_loop_depth(successor, new_depth, visited.copy())
+        
+        entry_nodes = [n for n in self.graph.nodes() if self.graph.in_degree(n) == 0]
+        
+        for entry_node in entry_nodes:
+            dfs_loop_depth(entry_node, 0, set())
+        
+        return max_loop_depth
+    
     def _calculate_fan_metrics(self) -> Dict[str, float]:
         """Вычисление метрик fan-in/fan-out"""
         if not self.graph.nodes():
-            return {'avg_fan_in': 0.0, 'avg_fan_out': 0.0, 'max_fan_in': 0, 'max_fan_out': 0}
+            return {'avg_fan_in': 0.0, 'avg_fan_out': 0.0, 
+                    'max_fan_in': 0, 'max_fan_out': 0}
         
         fan_ins = [self.graph.in_degree(n) for n in self.graph.nodes()]
         fan_outs = [self.graph.out_degree(n) for n in self.graph.nodes()]
@@ -503,15 +214,13 @@ class CFGAnalyzer:
         }
     
     def _count_back_edges(self) -> int:
-        """Подсчет обратных ребер (индикатор циклов)"""
+        """Подсчет обратных рёбер"""
         back_edges = 0
         
         try:
-            # Находим обратные ребра через DFS
             for edge in self.graph.edges():
                 source, target = edge
                 
-                # Если есть путь от target к source, это может быть обратным ребром
                 try:
                     if nx.has_path(self.graph, target, source):
                         back_edges += 1
@@ -524,21 +233,20 @@ class CFGAnalyzer:
         return back_edges
     
     def _count_forward_edges(self) -> int:
-        """Подсчет прямых ребер"""
-        # Упрощенная реализация
+        """Подсчет прямых рёбер"""
         return max(0, self.graph.number_of_edges() - self._count_back_edges())
     
     def _count_cross_edges(self) -> int:
-        """Подсчет перекрестных ребер"""
-        # Упрощенная реализация - возвращаем 0
+        """Подсчет перекрестных рёбер"""
         return 0
 
+
 class CFGComplexityAnalyzer(BaseComplexityAnalyzer):
-    """Анализатор сложности на основе CFG"""
+    """Анализатор сложности на основе CFG v2.0"""
     
     def __init__(self):
         super().__init__("cfg_analyzer", AnalyzerType.CFG)
-        self.cfg_builder = CFGBuilder()
+        self.cfg_builder = PythonCFGBuilder()
         self.cfg_analyzer = CFGAnalyzer()
     
     def is_available(self) -> bool:
@@ -550,15 +258,41 @@ class CFGComplexityAnalyzer(BaseComplexityAnalyzer):
             return False
     
     def analyze(self, context) -> ComplexityResult:
-        """Анализ сложности через CFG"""
+        """Анализ сложности через CFG v2.0"""
         try:
-            # Построение CFG
+            # 1. Парсинг и построение CFG
+            tree = ast.parse(context.source_code)
             cfg = self.cfg_builder.build_cfg(context.source_code)
             
-            # Анализ метрик CFG
+            # 2. Базовые метрики CFG
             cfg_metrics = self.cfg_analyzer.analyze_cfg(cfg)
             
-            # Определение класса сложности
+            # 3. НОВОЕ: Анализ потока данных
+            dfa = DataFlowAnalyzer(cfg, tree)
+            dfa_results = dfa.analyze()
+            cfg_metrics['data_flow'] = dfa_results
+            
+            # 4. НОВОЕ: Анализ итераторов
+            ira = IteratorRangeAnalyzer(cfg, tree, dfa_results)
+            ira_results = ira.analyze()
+            cfg_metrics['iterator_analysis'] = ira_results
+            
+            # 5. НОВОЕ: Распознавание библиотечных вызовов
+            lcr = LibraryCallRecognizer(cfg, tree)
+            lcr_results = lcr.analyze()
+            cfg_metrics['library_calls'] = lcr_results
+            
+            # 6. НОВОЕ: Отслеживание множественных переменных
+            mvt = MultiVariableTracker(cfg, dfa_results, ira_results)
+            mvt_results = mvt.analyze()
+            cfg_metrics['multi_variable'] = mvt_results
+            
+            # 7. НОВОЕ: Композиция сложностей
+            composer = ComplexityComposer(cfg, ira_results, lcr_results)
+            composer_results = composer.analyze()
+            cfg_metrics['complexity_composition'] = composer_results
+            
+            # 8. Определение класса сложности
             complexity_class = self._infer_complexity_from_cfg(cfg_metrics)
             confidence = self._calculate_confidence(cfg_metrics)
             
@@ -579,60 +313,57 @@ class CFGComplexityAnalyzer(BaseComplexityAnalyzer):
                 complexity_class=ComplexityClass.UNKNOWN,
                 confidence=0.0,
                 analyzer_name=self.name,
-                errors=[f"CFG analysis error: {e}"]
+                errors=[f"CFG v2.0 analysis error: {e}"]
             )
     
     def _infer_complexity_from_cfg(self, metrics: Dict[str, Any]) -> ComplexityClass:
-        """Определяет класс сложности с возможностью точной нотации."""
-        loop_nodes = metrics.get('loop_nodes', 0)
-        nested_loop_depth = metrics.get('nested_loop_depth', 0)
-        decision_nodes = metrics.get('decision_nodes', 0)
-        nodes_count = metrics.get('nodes_count', 0)
+        """Определение класса сложности с использованием CFG v2.0"""
         
-        # Нет циклов
-        if loop_nodes == 0:
-            if decision_nodes > nodes_count * 0.3:
-                return ComplexityClass.LOGARITHMIC
+        # Получаем результаты композитора
+        composer_results = metrics.get('complexity_composition', {})
+        overall_notation = composer_results.get('overall_complexity', 'O(1)')
+        
+        # Маппинг нотации на ComplexityClass
+        notation_lower = overall_notation.lower()
+        
+        if 'o(1)' in notation_lower:
             return ComplexityClass.CONSTANT
+        elif 'o(logn)' in notation_lower or 'o(log(n))' in notation_lower:
+            return ComplexityClass.LOGARITHMIC
+        elif 'o(nlogn)' in notation_lower or 'o(n*logn)' in notation_lower:
+            return ComplexityClass.LINEARITHMIC
+        elif 'o(n)' in notation_lower and '^' not in notation_lower and '*' not in notation_lower:
+            return ComplexityClass.LINEAR
+        elif 'o(n^2)' in notation_lower or 'o(m*n)' in notation_lower or 'o(n*m)' in notation_lower:
+            return ComplexityClass.QUADRATIC
+        elif 'o(n^3)' in notation_lower:
+            return ComplexityClass.CUBIC
+        elif 'o(n^' in notation_lower:
+            return ComplexityClass.POLYNOMIAL
+        elif 'o(2^n)' in notation_lower:
+            return ComplexityClass.EXPONENTIAL
+        elif 'o(n!)' in notation_lower:
+            return ComplexityClass.FACTORIAL
         
-        # Один цикл
-        if nested_loop_depth == 1:
-            if decision_nodes > 3:
-                return ComplexityClass.LINEARITHMIC  # O(nlogn)
-            return ComplexityClass.LINEAR  # O(n)
-        
-        # Два вложенных цикла
-        if nested_loop_depth == 2:
-            return ComplexityClass.QUADRATIC  # O(n^2)
-        
-        # Три вложенных цикла
-        if nested_loop_depth == 3:
-            return ComplexityClass.CUBIC  # O(n^3)
-        
-        # Больше трёх
-        if nested_loop_depth >= 4:
-            return ComplexityClass.POLYNOMIAL  # O(n^k)
-        
-        # Несколько последовательных циклов
-        if loop_nodes > 1:
-            return ComplexityClass.LINEAR  # O(n+m)
-        
-        return ComplexityClass.CONSTANT
-
-
+        return ComplexityClass.UNKNOWN
     
     def _calculate_confidence(self, metrics: Dict[str, Any]) -> float:
         """Расчет уверенности в результате"""
         base_confidence = 0.8
         
-        # Увеличиваем уверенность при наличии четких структур
+        # Увеличиваем уверенность при наличии четких индикаторов
         nodes_count = metrics.get('nodes_count', 0)
-        if nodes_count > 5:  # Достаточно узлов для анализа
+        if nodes_count > 5:
             base_confidence += 0.1
         
         # Уменьшаем при сложных графах
         avg_path_length = metrics.get('average_path_length', 0)
         if avg_path_length > 10:
             base_confidence -= 0.2
+        
+        # Увеличиваем при распознанных библиотечных вызовах
+        library_calls = metrics.get('library_calls', {})
+        if library_calls.get('total_calls', 0) > 0:
+            base_confidence += 0.05
         
         return max(0.1, min(base_confidence, 1.0))
