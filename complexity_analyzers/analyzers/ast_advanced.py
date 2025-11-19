@@ -346,7 +346,10 @@ class AdvancedASTAnalyzer(BaseComplexityAnalyzer):
     """Расширенный AST-анализатор"""
     
     def __init__(self):
-        super().__init__("ast_advanced", AnalyzerType.STATIC_AST)
+        super().__init__()
+        self.name = "ast_advanced"
+        self.analyzer_type = AnalyzerType.AST
+
         
         # Специализированные анализаторы
         self.loop_analyzer = AdvancedLoopAnalyzer()
@@ -450,45 +453,37 @@ class AdvancedASTAnalyzer(BaseComplexityAnalyzer):
             }
         }
     
-    def _determine_complexity(self, analysis_results: Dict[str, Any]) -> ComplexityClass:
-        """Определение итоговой сложности на основе всех анализов"""
-        complexity_indicators = []
+    def _has_sorting_in_loop(self, analysis_results: Dict[str, Any]) -> bool:
+        """Проверка наличия сортировки в цикле"""
+        data_analysis = analysis_results['data_structure_analysis']
         
-        # Анализ циклов
+        for op in data_analysis['complexity_operations']:
+            if op['complexity'] == ComplexityClass.LINEARITHMIC:
+                return True
+        
+        return False
+
+    def _determine_complexity(self, analysis_results: Dict[str, Any]) -> ComplexityClass:
+        """Определение сложности с учетом мультивариантности"""
+        
         loop_analysis = analysis_results['loop_analysis']
         max_nesting = loop_analysis['max_nesting']
         
-        if max_nesting >= 3:
-            complexity_indicators.append(ComplexityClass.CUBIC)
+        # КРИТИЧНО: проверяем количество уникальных переменных в циклах
+        unique_loop_vars = len(set().union(*[loop['variables'] for loop in loop_analysis['loops']]))
+        
+        # Если 2+ разных переменных в циклах → квадратичная
+        if unique_loop_vars >= 2 and max_nesting >= 2:
+            return ComplexityClass.QUADRATIC
+        elif max_nesting >= 3:
+            return ComplexityClass.CUBIC
         elif max_nesting == 2:
-            complexity_indicators.append(ComplexityClass.QUADRATIC)
+            return ComplexityClass.QUADRATIC
         elif max_nesting == 1:
-            complexity_indicators.append(ComplexityClass.LINEAR)
-        
-        # Анализ рекурсии
-        recursion_analysis = analysis_results['recursion_analysis']
-        for pattern in recursion_analysis['patterns']:
-            if 'estimated_complexity' in pattern:
-                complexity_indicators.append(pattern['estimated_complexity'])
-        
-        # Анализ операций со структурами данных
-        data_analysis = analysis_results['data_structure_analysis']
-        for op in data_analysis['complexity_operations']:
-            complexity_indicators.append(op['complexity'])
-        
-        # Анализ паттернов
-        patterns = analysis_results['patterns']
-        for pattern_type, pattern_data in patterns.items():
-            if pattern_data.get('detected_patterns'):
-                # Примерная оценка сложности на основе паттернов
-                if 'sorting' in pattern_type:
-                    complexity_indicators.append(ComplexityClass.LINEARITHMIC)
-                elif 'search' in pattern_type and 'binary' in str(pattern_data):
-                    complexity_indicators.append(ComplexityClass.LOGARITHMIC)
-        
-        # Выбор максимальной сложности
-        if complexity_indicators:
-            return max(complexity_indicators)
+            # Проверяем на nlogn
+            if self._has_sorting_in_loop(analysis_results):
+                return ComplexityClass.LINEARITHMIC
+            return ComplexityClass.LINEAR
         else:
             return ComplexityClass.CONSTANT
     

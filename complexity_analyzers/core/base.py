@@ -1,19 +1,11 @@
 """Базовые классы и интерфейсы для всех анализаторов"""
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
-from enum import Enum
 
-class AnalyzerType(Enum):
-    """Типы анализаторов"""
-    STATIC_AST = "static_ast"
-    RUNTIME_PROFILER = "runtime_profiler"
-    CFG_ANALYZER = "cfg_analyzer"
-    ML_PREDICTOR = "ml_predictor"
-    DYNAMIC_TRACER = "dynamic_tracer"
-    METRICS_CALCULATOR = "metrics_calculator"
-    TOOLS_INTEGRATION = "tools_integration"
-    HYBRID_ENSEMBLE = "hybrid_ensemble"
+# ИМПОРТ из enums (единственный источник истины)
+from .enums import AnalyzerType
+
 
 @dataclass
 class AnalysisContext:
@@ -26,12 +18,17 @@ class AnalysisContext:
     cache_results: bool = True
     metadata: Dict[str, Any] = None
 
+
 class BaseComplexityAnalyzer(ABC):
     """Базовый класс для всех анализаторов сложности"""
     
-    def __init__(self, name: str, analyzer_type: AnalyzerType):
-        self.name: str = name
-        self.analyzer_type: AnalyzerType = analyzer_type
+    def __init__(self, name: str = None, analyzer_type: AnalyzerType = None):
+        """
+        ОБНОВЛЕНО: аргументы опциональны для совместимости.
+        Подклассы могут вызывать super().__init__() без аргументов.
+        """
+        self.name: str = name or "unknown_analyzer"
+        self.analyzer_type: AnalyzerType = analyzer_type or AnalyzerType.AST
         self.is_initialized: bool = False
         self.config: Dict[str, Any] = {}
         self.cache: Dict[str, Any] = {}
@@ -57,12 +54,13 @@ class BaseComplexityAnalyzer(ABC):
         self.cache.clear()
     
     def get_supported_languages(self) -> List[str]:
-        """Поддерживаемые языки программирования"""
+        """Поддерживаемые языки"""
         return ['python']
     
     def validate_input(self, context: AnalysisContext) -> bool:
         """Валидация входных данных"""
         return bool(context.source_code and context.source_code.strip())
+
 
 class AnalyzerFactory:
     """Фабрика анализаторов"""

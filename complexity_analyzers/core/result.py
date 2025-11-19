@@ -1,29 +1,12 @@
 """Классы результатов анализа"""
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List
-from enum import Enum
 import json
 from datetime import datetime
 
-class ComplexityClass(Enum):
-    """Классы временной сложности"""
-    CONSTANT = ("O(1)", 1)
-    LOGARITHMIC = ("O(log n)", 2)
-    LINEAR = ("O(n)", 3)
-    LINEARITHMIC = ("O(n log n)", 4)
-    QUADRATIC = ("O(n²)", 5)
-    CUBIC = ("O(n³)", 6)
-    POLYNOMIAL = ("O(n^k)", 7)
-    EXPONENTIAL = ("O(2^n)", 8)
-    FACTORIAL = ("O(n!)", 9)
-    UNKNOWN = ("O(?)", 0)
-    
-    def __init__(self, notation: str, complexity_order: int):
-        self.notation = notation
-        self.complexity_order = complexity_order
-    
-    def __lt__(self, other):
-        return self.complexity_order < other.complexity_order
+# ИМПОРТ из enums (единственный источник истины)
+from .enums import ComplexityClass
+
 
 @dataclass
 class ComplexityMetrics:
@@ -39,14 +22,15 @@ class ComplexityMetrics:
     def to_dict(self) -> Dict[str, Any]:
         """Преобразование в словарь"""
         return {
-            'time_complexity': self.time_complexity.notation,
-            'space_complexity': self.space_complexity.notation,
+            'time_complexity': self.time_complexity.to_notation(),
+            'space_complexity': self.space_complexity.to_notation(),
             'cyclomatic_complexity': self.cyclomatic_complexity,
             'cognitive_complexity': self.cognitive_complexity,
             'nested_depth': self.nested_depth,
             'loop_count': self.loop_count,
             'recursive_calls': self.recursive_calls
         }
+
 
 @dataclass
 class ComplexityResult:
@@ -82,7 +66,7 @@ class ComplexityResult:
     def to_dict(self) -> Dict[str, Any]:
         """Преобразование в словарь"""
         return {
-            'complexity_class': self.complexity_class.notation,
+            'complexity_class': self.complexity_class.to_notation(),
             'confidence': self.confidence,
             'analyzer_name': self.analyzer_name,
             'analysis_time': self.analysis_time,
@@ -101,6 +85,7 @@ class ComplexityResult:
     def to_json(self) -> str:
         """Сериализация в JSON"""
         return json.dumps(self.to_dict(), indent=2, ensure_ascii=False)
+
 
 class ResultAggregator:
     """Агрегатор результатов от нескольких анализаторов"""
@@ -149,6 +134,6 @@ class ResultAggregator:
             analyzer_name="aggregated",
             debug_info={
                 'individual_results': len(self.results),
-                'complexity_votes': {c.notation: v for c, v in complexity_votes.items()}
+                'complexity_votes': {c.to_notation(): v for c, v in complexity_votes.items()}
             }
         )

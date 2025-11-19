@@ -1,4 +1,4 @@
-"""Обработчики и фильтры для датасетов"""
+"""Обработчики и фильтры для датасетов (БЕЗ маппинга)"""
 from typing import Dict, List, Set, Optional
 from collections import Counter
 import logging
@@ -17,14 +17,14 @@ class ComplexityClassFilter:
         self.target_time_classes = target_time_classes
         self.target_space_classes = target_space_classes
     
-    def analyze_distribution(self, samples: List[Dict]) -> tuple[Counter, Counter]:
+    def analyze_distribution(self, samples: List[Dict]) -> tuple:
         """Анализ распределения классов"""
         time_dist = Counter()
         space_dist = Counter()
         
         for sample in samples:
-            time_cls = sample.get('time_complexity_inferred') or sample.get('time_complexity')
-            space_cls = sample.get('space_complexity_inferred') or sample.get('space_complexity')
+            time_cls = sample.get('time_complexity')
+            space_cls = sample.get('space_complexity')
             
             if time_cls:
                 time_dist[time_cls] += 1
@@ -40,7 +40,7 @@ class ComplexityClassFilter:
             if count >= self.min_samples and cls is not None
         }
     
-    def filter(self, samples: List[Dict]) -> tuple[List[Dict], Dict]:
+    def filter(self, samples: List[Dict]) -> tuple:
         """Фильтрация образцов"""
         if self.target_time_classes is None or self.target_space_classes is None:
             time_dist, space_dist = self.analyze_distribution(samples)
@@ -62,8 +62,8 @@ class ComplexityClassFilter:
         }
         
         for sample in samples:
-            time_cls = sample.get('time_complexity_inferred') or sample.get('time_complexity')
-            space_cls = sample.get('space_complexity_inferred') or sample.get('space_complexity')
+            time_cls = sample.get('time_complexity')
+            space_cls = sample.get('space_complexity')
             
             if time_cls is None:
                 stats['none_time'] += 1
@@ -113,8 +113,8 @@ class DatasetJoiner:
                 'problem_id': item['problem_id'],
                 'problem_name': item.get('problem_name', solution_data['problem_name']),
                 'code': solution_data['code'],
-                'time_complexity': item.get('time_complexity_inferred'),
-                'space_complexity': item.get('space_complexity_inferred'),
+                'time_complexity': item.get('time_complexity'),
+                'space_complexity': item.get('space_complexity'),
                 'time_curve_coefficient': item.get('time_curve_coefficient'),
                 'space_curve_coefficient': item.get('space_curve_coefficient')
             }
@@ -127,53 +127,11 @@ class DatasetJoiner:
         return samples
 
 
-class ComplexityMapper:
-    """Маппинг сложных классов на упрощенные"""
-    
-    def __init__(self, mapping: Optional[Dict[str, str]] = None):
-        self.mapping = mapping or self._default_mapping()
-    
-    @staticmethod
-    def _default_mapping() -> Dict[str, str]:
-        """Дефолтный маппинг на базовые классы"""
-        return {
-            'O(1)': 'constant',
-            'O(logn)': 'logarithmic',
-            'O(n)': 'linear',
-            'O(nlogn)': 'linearithmic',
-            'O(n**2)': 'quadratic',
-            'O(n**3)': 'cubic',
-            'O(n*m)': 'product_two_vars',
-            'O(n+m)': 'sum_two_vars',
-        }
-    
-    def map_complexity(self, complexity: str) -> Optional[str]:
-        """Маппинг одного класса"""
-        return self.mapping.get(complexity)
-    
-    def apply(self, samples: List[Dict], 
-             field: str = 'time_complexity') -> List[Dict]:
-        """Применение маппинга к датасету"""
-        mapped_samples = []
-        
-        for sample in samples:
-            original = sample.get(field)
-            mapped = self.map_complexity(original)
-            
-            if mapped:
-                sample = sample.copy()
-                sample[f'{field}_mapped'] = mapped
-                sample[f'{field}_original'] = original
-                mapped_samples.append(sample)
-        
-        return mapped_samples
-
-
 class DataValidator:
     """Валидация данных"""
     
     @staticmethod
-    def validate_sample(sample: Dict) -> tuple[bool, List[str]]:
+    def validate_sample(sample: Dict) -> tuple:
         """Валидация одного образца"""
         errors = []
         
@@ -196,7 +154,7 @@ class DataValidator:
         return len(errors) == 0, errors
     
     @staticmethod
-    def validate_dataset(samples: List[Dict]) -> tuple[List[Dict], Dict]:
+    def validate_dataset(samples: List[Dict]) -> tuple:
         """Валидация датасета"""
         valid_samples = []
         stats = {

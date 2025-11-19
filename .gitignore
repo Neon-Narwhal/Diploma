@@ -219,3 +219,4 @@ complexity_analyzer/
 structure.txt
 datasets/cache
 mlruns/
+/complexity_analyzers/results/

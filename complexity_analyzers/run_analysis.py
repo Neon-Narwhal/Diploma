@@ -50,7 +50,7 @@ def run_analysis():
             max_workers=MAX_WORKERS if USE_MULTIPROCESSING else 1
         )
         
-        max_items = 100 # MAX_SAMPLES
+        max_items = 10000 # MAX_SAMPLES
 
         results = processor.process_path(
             input_path=input_path,
