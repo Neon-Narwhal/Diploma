@@ -1,0 +1,33 @@
+name: "single_catboost"
+description: "Обучение одной CatBoost модели"
+
+models:
+  - name: "catboost"
+    type: "catboost"
+    params:
+      boosting_type: "catboost"
+      iterations: 100
+      depth: 6
+      learning_rate: 0.03
+
+features:
+  extractors:
+    - complexity
+  transformer_method: "standard"
+
+cross_validation:
+  enabled: true
+  n_folds: 5
+  stratified: true
+  metrics:
+    - accuracy
+    - f1_macro
+
+evaluation_metrics:
+  - accuracy
+  - f1_macro
+  - precision_macro
+  - recall_macro
+
+save_models: true
+generate_report: true

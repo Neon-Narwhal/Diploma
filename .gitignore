@@ -209,14 +209,14 @@ __marimo__/
 
 
 tokenizer.json
-tests.ipynb
 data/
 notebooks/
 exps.ipynb
 checkpoints/
 scr/
-complexity_analyzer/
-structure.txt
-datasets/cache
+datasets/
 mlruns/
 /complexity_analyzers/results/
+logs/
+ml/outputs/
+catboost_info/

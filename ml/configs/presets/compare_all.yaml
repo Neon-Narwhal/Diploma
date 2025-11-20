@@ -1,0 +1,55 @@
+name: "compare_all_boosting"
+description: "Сравнение CatBoost, XGBoost, LightGBM"
+
+models:
+  - name: "catboost"
+    type: "catboost"
+    params:
+      boosting_type: "catboost"
+      iterations: 1000
+      depth: 6
+      learning_rate: 0.03
+      
+  - name: "xgboost"
+    type: "xgboost"
+    params:
+      boosting_type: "xgboost"
+      n_estimators: 1000
+      max_depth: 6
+      learning_rate: 0.03
+      
+  - name: "lightgbm"
+    type: "lightgbm"
+    params:
+      boosting_type: "lightgbm"
+      n_estimators: 1000
+      max_depth: 6
+      learning_rate: 0.03
+
+features:
+  extractors:
+    - complexity
+    - token
+  transformer_method: "standard"
+  selector_method: "mutual_info"
+  n_features: 50
+
+cross_validation:
+  enabled: true
+  n_folds: 5
+  stratified: true
+  metrics:
+    - accuracy
+    - f1_macro
+    - f1_micro
+
+evaluation_metrics:
+  - accuracy
+  - f1_macro
+  - f1_micro
+  - precision_macro
+  - recall_macro
+
+save_models: true
+save_predictions: true
+generate_report: true

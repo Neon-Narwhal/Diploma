@@ -1,0 +1,49 @@
+name: "catboost_optimized"
+description: "CatBoost с оптимизацией гиперпараметров через Optuna"
+
+models:
+  - name: "catboost_optimized"
+    type: "catboost"
+    params:
+      boosting_type: "catboost"
+      # Параметры будут подобраны через оптимизацию
+
+features:
+  extractors:
+    - complexity
+  transformer_method: "standard"
+
+optimization:
+  enabled: true
+  n_trials: 50
+  metric: "f1_macro"
+  search_space:
+    iterations:
+      type: "int"
+      low: 100
+      high: 2000
+    depth:
+      type: "int"
+      low: 4
+      high: 10
+    learning_rate:
+      type: "float"
+      low: 0.01
+      high: 0.3
+      log: true
+    l2_leaf_reg:
+      type: "float"
+      low: 1
+      high: 10
+
+cross_validation:
+  enabled: true
+  n_folds: 5
+  stratified: true
+
+evaluation_metrics:
+  - accuracy
+  - f1_macro
+
+save_models: true
+generate_report: true
