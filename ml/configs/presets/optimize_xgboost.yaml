@@ -1,0 +1,68 @@
+name: "optimize_xgboost_gpu"
+description: "Оптимизация XGBoost на GPU"
+
+data:
+  train_path: "data/bigobench_mapped/train.jsonl"
+  val_path: "data/bigobench_mapped/val.jsonl"
+  test_path: "data/bigobench_mapped/test.jsonl"
+  code_field: "code"
+  label_field: "time_complexity_mapped"
+  preprocessing:
+    min_code_length: 10
+    max_samples_per_split: 10000
+
+models:
+  - name: "xgboost_opt"
+    type: "xgboost"
+    params:
+      boosting_type: "xgboost"
+      tree_method: "hist"
+      device: "cuda"
+      verbosity: 0
+
+optimization:
+  enabled: true
+  n_trials: 50
+  timeout: 3600
+  metric: "f1_macro"
+  search_space:
+    learning_rate:
+      type: "float"
+      low: 0.01
+      high: 0.3
+      log: true
+    max_depth:
+      type: "int"
+      low: 3
+      high: 10
+    n_estimators:
+      type: "int"
+      low: 500
+      high: 2000
+    min_child_weight:
+      type: "int"
+      low: 1
+      high: 7
+    subsample:
+      type: "float"
+      low: 0.6
+      high: 1.0
+    colsample_bytree:
+      type: "float"
+      low: 0.6
+      high: 1.0
+    reg_alpha:   # L1 regularization
+      type: "float"
+      low: 0.0
+      high: 1.0
+    reg_lambda:  # L2 regularization
+      type: "float"
+      low: 0.0
+      high: 1.0
+
+features:
+  extractors: ["complexity"]
+  remove_constant: true
+
+save_models: true
+generate_report: true

@@ -1,47 +1,54 @@
 name: "compare_all_boosting"
 description: "Сравнение CatBoost, XGBoost, LightGBM"
 
+data:
+  train_path: "data/bigobench_mapped/train.jsonl"
+  val_path: "data/bigobench_mapped/val.jsonl"
+  test_path: "data/bigobench_mapped/test.jsonl"
+  code_field: "code"
+  label_field: "time_complexity_mapped"
+  
+  preprocessing:
+    min_code_length: 10
+    max_samples_per_split: 5000
+
 models:
   - name: "catboost"
     type: "catboost"
     params:
-      boosting_type: "catboost"
       iterations: 1000
       depth: 6
       learning_rate: 0.03
+      task_type: "GPU"
+      devices: "0"
       
   - name: "xgboost"
     type: "xgboost"
     params:
-      boosting_type: "xgboost"
       n_estimators: 1000
       max_depth: 6
       learning_rate: 0.03
+      task_type: "gpu_hist"
+      device: "cuda" 
       
   - name: "lightgbm"
     type: "lightgbm"
     params:
-      boosting_type: "lightgbm"
       n_estimators: 1000
       max_depth: 6
       learning_rate: 0.03
+      device: "gpu" 
 
 features:
   extractors:
     - complexity
-    - token
   transformer_method: "standard"
   selector_method: "mutual_info"
   n_features: 50
 
+# CV больше не обязателен, если есть val set
 cross_validation:
-  enabled: true
-  n_folds: 5
-  stratified: true
-  metrics:
-    - accuracy
-    - f1_macro
-    - f1_micro
+  enabled: false
 
 evaluation_metrics:
   - accuracy
@@ -50,6 +57,6 @@ evaluation_metrics:
   - precision_macro
   - recall_macro
 
-save_models: true
-save_predictions: true
+save_models: false
+save_predictions: false
 generate_report: true

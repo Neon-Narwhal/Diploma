@@ -1,33 +1,28 @@
 name: "single_catboost"
-description: "Обучение одной CatBoost модели"
+description: "Обучение CatBoost на BigOBench"
+
+data:
+  train_path: "data/bigobench_mapped/train.jsonl"
+  val_path: "data/bigobench_mapped/val.jsonl"
+  test_path: "data/bigobench_mapped/test.jsonl"
+  code_field: "code"
+  label_field: "time_complexity_mapped"
+  
+  preprocessing:
+    min_code_length: 10
+    max_samples_per_split: 5000  # Убери для полного обучения
+  
+  features:
+    remove_constant: true
 
 models:
   - name: "catboost"
     type: "catboost"
     params:
-      boosting_type: "catboost"
-      iterations: 100
+      iterations: 1000
       depth: 6
       learning_rate: 0.03
-
-features:
-  extractors:
-    - complexity
-  transformer_method: "standard"
-
-cross_validation:
-  enabled: true
-  n_folds: 5
-  stratified: true
-  metrics:
-    - accuracy
-    - f1_macro
-
-evaluation_metrics:
-  - accuracy
-  - f1_macro
-  - precision_macro
-  - recall_macro
+      verbose: false
 
 save_models: true
 generate_report: true

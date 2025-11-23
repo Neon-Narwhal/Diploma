@@ -13,6 +13,7 @@ from ml.evaluation.comparison import ModelComparison
 from ml.evaluation.visualization import ModelVisualizer
 from ml.evaluation.report import ReportGenerator
 from ml.utils.logger import MLLogger
+from ml.utils.data_loader import StandardizedData
 
 
 class ExperimentRunner:
@@ -34,24 +35,15 @@ class ExperimentRunner:
         self.results = {}
         self.models = {}
     
-    def run(
-        self,
-        X_train: np.ndarray,
-        y_train: np.ndarray,
-        X_test: Optional[np.ndarray] = None,
-        y_test: Optional[np.ndarray] = None,
-    ) -> Dict[str, Any]:
+    def run(self, data: StandardizedData) -> Dict[str, Any]:
         """
-        Запуск всех моделей из конфига.
+        Запуск эксперимента на готовых данных.
         
         Args:
-            X_train: признаки для обучения
-            y_train: таргет для обучения
-            X_test: признаки для теста
-            y_test: таргет для теста
+            data: объект StandardizedData с разделенными выборками
             
         Returns:
-            Результаты всех моделей
+            Результаты обучения всех моделей
         """
         print(f"\n{'='*80}")
         print(f"ЭКСПЕРИМЕНТ: {self.config.name}")
@@ -64,18 +56,20 @@ class ExperimentRunner:
             print(f"\n[{i}/{len(model_configs)}] Обучение модели: {model_config.name}")
             print(f"{'-'*80}")
             
-            # Запуск pipeline для модели
+            # Запуск обучения с валидацией на val сете
             result = self._train_single_model(
                 model_config,
-                X_train,
-                y_train,
-                X_test,
-                y_test,
+                X_train=data.X_train,
+                y_train=data.y_train,
+                X_test=data.X_test,
+                y_test=data.y_test,
+                X_val=data.X_val,    # Передаем явный val сет
+                y_val=data.y_val     # вместо CV разделения
             )
             
             self.results[model_config.name] = result
         
-        # Сравнение моделей
+        # Сравнение моделей (если их > 1)
         if len(model_configs) > 1:
             self._compare_models()
         
@@ -84,6 +78,7 @@ class ExperimentRunner:
             self._generate_report()
         
         return self.results
+
     
     def _train_single_model(
         self,
@@ -92,6 +87,8 @@ class ExperimentRunner:
         y_train: np.ndarray,
         X_test: Optional[np.ndarray],
         y_test: Optional[np.ndarray],
+        X_val: Optional[np.ndarray] = None,  # Добавлен параметр
+        y_val: Optional[np.ndarray] = None   # Добавлен параметр
     ) -> Dict[str, Any]:
         """Обучение одной модели"""
         # Создаем логгер
@@ -100,6 +97,7 @@ class ExperimentRunner:
             use_json=True,
             json_path=f"ml/outputs/logs/{model_config.name}.json",
             experiment_name=self.config.mlflow_experiment or self.config.name,
+            use_console=True,
         )
         
         # Создаем pipeline
@@ -111,9 +109,14 @@ class ExperimentRunner:
             logger=logger,
         )
         
-        # Запуск
+        # Запуск pipeline (передаем val данные)
         with logger:
-            result = pipeline.run(X_train, y_train, X_test, y_test)
+            result = pipeline.run(
+                X_train, y_train, 
+                X_test, y_test,
+                X_val=X_val,  # Передаем в pipeline
+                y_val=y_val   # Передаем в pipeline
+            )
             
             # Сохранение модели
             if self.config.save_models:
@@ -121,10 +124,10 @@ class ExperimentRunner:
                 pipeline.save_model(model_path)
                 print(f"✓ Модель сохранена: {model_path}")
             
-            # Сохранение модели в памяти
             self.models[model_config.name] = pipeline.model
         
         return result
+
     
     def _compare_models(self):
         """Сравнение результатов моделей"""

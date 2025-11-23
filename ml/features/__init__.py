@@ -6,6 +6,7 @@ from ml.features.extractors import ComplexityFeatureExtractor, TokenFeatureExtra
 from ml.features.transformers import FeatureTransformer
 from ml.features.selectors import FeatureSelector
 from ml.features.pipeline import FeaturePipeline
+from ml.features.bert_extractor import CodeBertExtractor
 
 __all__ = [
     'ComplexityFeatureExtractor',
@@ -13,4 +14,5 @@ __all__ = [
     'FeatureTransformer',
     'FeatureSelector',
     'FeaturePipeline',
+    'CodeBertExtractor',
 ]

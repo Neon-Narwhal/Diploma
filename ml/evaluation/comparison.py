@@ -23,60 +23,53 @@ class ModelComparison:
     def create_comparison_table(self, metrics: List[str]) -> pd.DataFrame:
         """
         Создание таблицы сравнения метрик.
-        
-        Args:
-            metrics: список метрик для сравнения
-            
-        Returns:
-            DataFrame с метриками для каждой модели
         """
         rows = []
         
         for model_name, model_results in self.results.items():
             row = {'model': model_name}
             
-            # Извлекаем метрики
-            for metric in metrics:
-                # Проверяем разные источники метрик
-                if 'test_metrics' in model_results:
-                    row[metric] = model_results['test_metrics'].get(metric, np.nan)
-                elif 'train_metrics' in model_results:
-                    row[metric] = model_results['train_metrics'].get(metric, np.nan)
-                elif 'cv_results' in model_results:
-                    cv_mean = model_results['cv_results']['mean']
-                    row[metric] = cv_mean.get(metric, np.nan)
-                else:
-                    row[metric] = np.nan
-                
-                # Добавляем CV std если есть
-                if 'cv_results' in model_results:
-                    cv_std = model_results['cv_results']['std']
-                    row[f"{metric}_std"] = cv_std.get(metric, np.nan)
+            # Определяем источник метрик
+            # Приоритет: test_metrics -> cv_results -> train_metrics
+            source = None
+            prefix = ""
+            
+            if 'test_metrics' in model_results:
+                source = model_results['test_metrics']
+                prefix = "test_"
+            elif 'cv_results' in model_results:
+                source = model_results['cv_results']['mean']
+                prefix = "cv_"  # Если метрики в CV имеют префикс
+            elif 'train_metrics' in model_results:
+                source = model_results['train_metrics']
+                prefix = "train_"
+            
+            if source:
+                for metric in metrics:
+                    # Пробуем найти метрику с префиксом или без
+                    val = source.get(f"{prefix}{metric}") or source.get(metric)
+                    row[metric] = val if val is not None else np.nan
             
             rows.append(row)
         
         df = pd.DataFrame(rows)
         return df
+
     
     def find_best_model(self, metric: str = 'accuracy') -> str:
         """
         Поиск лучшей модели по метрике.
-        
-        Args:
-            metric: метрика для сравнения
-            
-        Returns:
-            Имя лучшей модели
         """
         best_model = None
         best_value = -np.inf
         
         for model_name, model_results in self.results.items():
-            # Извлекаем значение метрики
             value = None
             
             if 'test_metrics' in model_results:
-                value = model_results['test_metrics'].get(metric)
+                # Ищем test_metric или metric
+                value = model_results['test_metrics'].get(f"test_{metric}") or \
+                        model_results['test_metrics'].get(metric)
             elif 'cv_results' in model_results:
                 value = model_results['cv_results']['mean'].get(metric)
             
@@ -85,6 +78,7 @@ class ModelComparison:
                 best_model = model_name
         
         return best_model
+
     
     def statistical_test(
         self,
@@ -126,29 +120,20 @@ class ModelComparison:
         }
     
     def rank_models(self, metric: str = 'accuracy') -> List[tuple]:
-        """
-        Ранжирование моделей по метрике.
-        
-        Args:
-            metric: метрика для ранжирования
-            
-        Returns:
-            Список (имя_модели, значение_метрики) отсортированный по убыванию
-        """
+        """Ранжирование моделей"""
         rankings = []
         
         for model_name, model_results in self.results.items():
             value = None
-            
             if 'test_metrics' in model_results:
-                value = model_results['test_metrics'].get(metric)
+                value = model_results['test_metrics'].get(f"test_{metric}") or \
+                        model_results['test_metrics'].get(metric)
             elif 'cv_results' in model_results:
                 value = model_results['cv_results']['mean'].get(metric)
             
             if value is not None:
                 rankings.append((model_name, value))
         
-        # Сортируем по убыванию
         rankings.sort(key=lambda x: x[1], reverse=True)
-        
         return rankings
+

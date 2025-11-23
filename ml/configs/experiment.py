@@ -43,6 +43,17 @@ class OptimizationConfig(BaseConfig):
     metric: str = 'accuracy'
     search_space: Dict[str, Any] = field(default_factory=dict)
 
+@dataclass
+class DataConfig(BaseConfig):
+    """Конфигурация данных"""
+    train_path: str
+    val_path: str
+    test_path: str
+    code_field: str = 'code'
+    label_field: str = 'time_complexity_mapped'
+    preprocessing: Dict[str, Any] = field(default_factory=dict)
+    features: Dict[str, Any] = field(default_factory=dict)
+
 
 @dataclass
 class ExperimentConfig(BaseConfig):
@@ -64,6 +75,8 @@ class ExperimentConfig(BaseConfig):
     
     # Optimization
     optimization: Optional[Dict[str, Any]] = None
+
+    data: Dict[str, Any] = field(default_factory=dict)
     
     # Evaluation
     evaluation_metrics: List[str] = field(

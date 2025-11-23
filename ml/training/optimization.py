@@ -1,156 +1,148 @@
 """
-Оптимизация гиперпараметров через Optuna.
+Оптимизация гиперпараметров с помощью Optuna.
 """
 
-import optuna
 import numpy as np
-from typing import Dict, Any, Optional, Callable
-from ml.core.base_model import BaseModel
-from ml.core.model_factory import ModelFactory
+import optuna
+from typing import Dict, Any, Tuple, Optional
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score
+
 from ml.core.model_config import ModelConfig
-from ml.training.cross_validation import CrossValidator
+from ml.core.model_factory import ModelFactory
 
 
 class OptunaOptimizer:
     """
-    Оптимизация гиперпараметров через Optuna.
+    Оптимизатор гиперпараметров.
     """
     
     def __init__(
         self,
-        n_trials: int = 100,
-        timeout: Optional[int] = None,
-        n_jobs: int = 1,
-        direction: str = 'maximize',
+        model_config: ModelConfig,
+        optimization_config: Dict[str, Any],
+        cv_config: Optional[Dict[str, Any]] = None
     ):
         """
         Args:
-            n_trials: количество trials
-            timeout: таймаут в секундах
-            n_jobs: количество параллельных jobs
-            direction: 'maximize' или 'minimize'
+            model_config: конфиг модели (базовые параметры)
+            optimization_config: конфиг оптимизации (search space, n_trials)
+            cv_config: конфиг кросс-валидации (если не передан val сет)
         """
-        self.n_trials = n_trials
-        self.timeout = timeout
-        self.n_jobs = n_jobs
-        self.direction = direction
-        
-        self.study = None
-        self.best_params = None
-        self.best_value = None
-    
+        self.model_config = model_config
+        self.optimization_config = optimization_config
+        self.cv_config = cv_config
+
     def optimize(
-        self,
-        model_type: str,
-        X: np.ndarray,
-        y: np.ndarray,
-        search_space: Dict[str, Any],
-        metric: str = 'accuracy',
-        cv_folds: int = 5,
-    ) -> Dict[str, Any]:
+        self, 
+        X: np.ndarray, 
+        y: np.ndarray, 
+        X_val: Optional[np.ndarray] = None, 
+        y_val: Optional[np.ndarray] = None
+    ) -> Tuple[Dict[str, Any], float]:
         """
-        Запуск оптимизации.
+        Запуск процесса оптимизации.
+        """
+        # Отключаем лишний шум от Optuna
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
         
-        Args:
-            model_type: тип модели для оптимизации
-            X: признаки
-            y: таргет
-            search_space: пространство поиска параметров
-            metric: метрика для оптимизации
-            cv_folds: количество фолдов для CV
+        def objective(trial):
+            # 1. Генерируем параметры для текущей итерации
+            params = self._suggest_params(trial)
             
-        Returns:
-            Лучшие параметры и результаты
-        """
-        def objective(trial: optuna.Trial) -> float:
-            # Генерация параметров из search space
-            params = self._suggest_params(trial, search_space)
+            # 2. Объединяем с базовыми параметрами модели
+            # (например, task_type="GPU" должен остаться)
+            model_params = self.model_config.params.copy()
+            model_params.update(params)
             
-            # Создание модели
-            config = ModelConfig(
+            # 3. Создаем временную модель
+            temp_config = ModelConfig(
                 name=f"trial_{trial.number}",
-                type=model_type,
-                params=params,
+                type=self.model_config.type,
+                params=model_params
             )
-            model = ModelFactory.create(config)
+            model = ModelFactory.create(temp_config)
             
-            # Cross-validation оценка
-            cv = CrossValidator(n_folds=cv_folds)
-            cv_results = cv.run(model, X, y, metrics=[metric])
+            # 4. Обучение и оценка
+            metric_name = self.optimization_config.get('metric', 'f1_macro')
             
-            return cv_results['mean'][metric]
+            try:
+                if X_val is not None and y_val is not None:
+                    # Если есть явная валидация
+                    # Передаем eval_set, если модель поддерживает (обернуто в try/except в модели или тут)
+                    try:
+                        model.fit(X, y, eval_set=(X_val, y_val))
+                    except TypeError:
+                        model.fit(X, y)
+                        
+                    score = self._evaluate_metric(model, X_val, y_val, metric_name)
+                else:
+                    # Если нет валидации, делаем простой сплит внутри
+                    X_t, X_v, y_t, y_v = train_test_split(
+                        X, y, test_size=0.2, random_state=42, stratify=y
+                    )
+                    model.fit(X_t, y_t)
+                    score = self._evaluate_metric(model, X_v, y_v, metric_name)
+                    
+            except Exception as e:
+                # Если параметры плохие и модель упала, возвращаем плохой скор
+                # print(f"Trial failed: {e}")
+                return 0.0
+            
+            return score
+
+        # Создаем study
+        study = optuna.create_study(direction="maximize")
         
-        # Создание и запуск study
-        self.study = optuna.create_study(direction=self.direction)
-        self.study.optimize(
-            objective,
-            n_trials=self.n_trials,
-            timeout=self.timeout,
-            n_jobs=self.n_jobs,
+        print(f"Начало оптимизации ({self.optimization_config.get('n_trials')} итераций)...")
+        study.optimize(
+            objective, 
+            n_trials=self.optimization_config.get('n_trials', 10),
+            timeout=self.optimization_config.get('timeout', 3600),
+            show_progress_bar=True
         )
         
-        # Сохранение лучших результатов
-        self.best_params = self.study.best_params
-        self.best_value = self.study.best_value
-        
-        return {
-            'best_params': self.best_params,
-            'best_value': self.best_value,
-            'n_trials': len(self.study.trials),
-            'study': self.study,
-        }
-    
-    def _suggest_params(
-        self,
-        trial: optuna.Trial,
-        search_space: Dict[str, Any],
-    ) -> Dict[str, Any]:
-        """
-        Генерация параметров из search space.
-        
-        Search space format:
-        {
-            'param_name': {
-                'type': 'int'/'float'/'categorical',
-                'low': ...,
-                'high': ...,
-                'choices': [...],
-            }
-        }
-        """
+        return study.best_params, study.best_value
+
+    def _suggest_params(self, trial) -> Dict[str, Any]:
+        """Генерация параметров на основе search_space из конфига"""
         params = {}
+        search_space = self.optimization_config.get('search_space', {})
         
-        for param_name, param_config in search_space.items():
-            param_type = param_config['type']
+        for name, config in search_space.items():
+            param_type = config.get('type')
             
             if param_type == 'int':
-                params[param_name] = trial.suggest_int(
-                    param_name,
-                    param_config['low'],
-                    param_config['high'],
+                params[name] = trial.suggest_int(
+                    name, 
+                    config['low'], 
+                    config['high'], 
+                    log=config.get('log', False)
                 )
             elif param_type == 'float':
-                params[param_name] = trial.suggest_float(
-                    param_name,
-                    param_config['low'],
-                    param_config['high'],
-                    log=param_config.get('log', False),
+                params[name] = trial.suggest_float(
+                    name, 
+                    config['low'], 
+                    config['high'], 
+                    log=config.get('log', False)
                 )
             elif param_type == 'categorical':
-                params[param_name] = trial.suggest_categorical(
-                    param_name,
-                    param_config['choices'],
+                params[name] = trial.suggest_categorical(
+                    name, 
+                    config['choices']
                 )
-        
+                
         return params
-    
-    def get_best_config(self, model_type: str, name: str = "optimized") -> ModelConfig:
-        """Создание конфига с лучшими параметрами"""
-        if self.best_params is None:
-            raise RuntimeError("Optimization must be run before get_best_config")
+
+    def _evaluate_metric(self, model, X, y, metric_name):
+        """Вычисление метрики"""
+        y_pred = model.predict(X)
         
-        return ModelConfig(
-            name=name,
-            type=model_type,
-            params=self.best_params,
-        )
+        if metric_name == 'accuracy':
+            return accuracy_score(y, y_pred)
+        elif metric_name == 'f1_macro':
+            return f1_score(y, y_pred, average='macro')
+        elif metric_name == 'f1_micro':
+            return f1_score(y, y_pred, average='micro')
+        else:
+            return accuracy_score(y, y_pred)

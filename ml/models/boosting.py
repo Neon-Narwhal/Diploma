@@ -29,23 +29,59 @@ class BoostingModel(BaseModel):
     
     def _create_model(self):
         """Создание модели по типу"""
+        # Копируем параметры, чтобы не менять исходный словарь
+        params = self.params.copy()
+        
+        # Убираем boosting_type, так как он не нужен конструктору модели
+        params.pop('boosting_type', None)
+        
         if self.boosting_type == 'catboost':
             from catboost import CatBoostClassifier
-            return CatBoostClassifier(**self.params, verbose=False)
+            # Если verbose не задан в конфиге, ставим False по умолчанию
+            if 'verbose' not in params:
+                params['verbose'] = False
+            return CatBoostClassifier(**params)
         
         elif self.boosting_type == 'xgboost':
             from xgboost import XGBClassifier
-            return XGBClassifier(**self.params)
+            # Для XGBoost verbosity=0 отключает вывод
+            if 'verbosity' not in params:
+                params['verbosity'] = 0
+            return XGBClassifier(**params)
         
         elif self.boosting_type == 'lightgbm':
             from lightgbm import LGBMClassifier
-            return LGBMClassifier(**self.params, verbose=-1)
+            # Для LightGBM verbose=-1 отключает вывод
+            if 'verbose' not in params:
+                params['verbose'] = -1
+            return LGBMClassifier(**params)
+
     
-    def fit(self, X: np.ndarray, y: np.ndarray) -> 'BoostingModel':
+    def fit(self, X: np.ndarray, y: np.ndarray, eval_set=None) -> 'BoostingModel':
         """Обучение модели"""
-        self.model.fit(X, y)
+        fit_params = {}
+        
+        # Поддержка eval_set для бустингов
+        if eval_set is not None:
+            if self.boosting_type == 'catboost':
+                fit_params['eval_set'] = eval_set
+                fit_params['early_stopping_rounds'] = 50
+            elif self.boosting_type == 'xgboost':
+                fit_params['eval_set'] = [eval_set]
+                fit_params['early_stopping_rounds'] = 50
+                fit_params['verbose'] = False
+            elif self.boosting_type == 'lightgbm':
+                fit_params['eval_set'] = eval_set
+                """
+                fit_params['callbacks'] = [
+                    # lgb callbacks if needed
+                ]
+                """
+        
+        self.model.fit(X, y, **fit_params)
         self.is_fitted = True
         return self
+
     
     def predict(self, X: np.ndarray) -> np.ndarray:
         """Предсказание классов"""

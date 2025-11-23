@@ -1,57 +1,44 @@
 """
-Запуск с оптимизацией гиперпараметров на BigOBench.
+Запуск с оптимизацией гиперпараметров.
 """
 
-import numpy as np
+import sys
 from pathlib import Path
 
+# Добавляем корень проекта
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
 from ml.configs.experiment import ExperimentConfig
+from ml.utils.data_loader import DataLoader
 from ml.experiments.runner import ExperimentRunner
-from ml.experiments.run_single import load_bigobench_data
 
 
-def run_with_optimization(
-    config_path: str,
-    data_path: str,
-    test_split: float = 0.2,
-    val_split: float = 0.1,
-):
+def run_with_optimization():
     """
-    Запуск с оптимизацией гиперпараметров на BigOBench.
-    
-    Args:
-        config_path: путь к YAML конфигу (должен содержать optimization секцию)
-        data_path: путь к JSONL файлу BigOBench
-        test_split: доля test данных
-        val_split: доля validation данных
-        
-    Returns:
-        Результаты с оптимизированными параметрами
+    Запуск эксперимента с оптимизацией гиперпараметров.
     """
-    # Загрузка данных
-    (
-        X_train, y_train,
-        X_val, y_val,
-        X_test, y_test,
-        code_train, code_val, code_test
-    ) = load_bigobench_data(
-        data_path=data_path,
-        test_split=test_split,
-        val_split=val_split,
-    )
-    
-    # Загрузка конфига
+    # 1. Загрузка конфига
+    config_path = "ml/configs/presets/with_optimization.yaml"
     config = ExperimentConfig.from_yaml(config_path)
     
-    # Проверка что оптимизация включена
+    # Проверка включения оптимизации
     if not config.optimization or not config.optimization.get('enabled'):
         raise ValueError("Optimization must be enabled in config")
     
-    # Запуск
-    runner = ExperimentRunner(config)
-    results = runner.run(X_train, y_train, X_test, y_test)
+    # 2. Загрузка данных
+    loader = DataLoader.from_config(config)
+    data = loader.load()
     
-    # Вывод лучших параметров
+    # 3. Запуск эксперимента
+    print("\n" + "="*80)
+    print("ЗАПУСК ОПТИМИЗАЦИИ")
+    print("="*80)
+    
+    runner = ExperimentRunner(config)
+    results = runner.run(data)
+    
+    # 4. Вывод лучших параметров
     print("\n" + "="*80)
     print("РЕЗУЛЬТАТЫ ОПТИМИЗАЦИИ")
     print("="*80)
@@ -64,21 +51,7 @@ def run_with_optimization(
                 print(f"  {param}: {value}")
             print(f"  Best score: {opt_results['best_value']:.4f}")
             print(f"  Total trials: {opt_results['n_trials']}")
-    
-    return results
 
 
-# Пример использования
 if __name__ == "__main__":
-    DATA_PATH = "data/bigobench_mapped/train.jsonl"
-    
-    if not Path(DATA_PATH).exists():
-        print(f"❌ Файл не найден: {DATA_PATH}")
-        exit(1)
-    
-    results = run_with_optimization(
-        config_path="ml/configs/presets/with_optimization.yaml",
-        data_path=DATA_PATH,
-        test_split=0.2,
-        val_split=0.1,
-    )
+    run_with_optimization()

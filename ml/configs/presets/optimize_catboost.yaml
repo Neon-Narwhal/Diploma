@@ -1,0 +1,58 @@
+name: "optimize_catboost_gpu"
+description: "Оптимизация CatBoost на GPU"
+
+data:
+  train_path: "data/bigobench_mapped/train.jsonl"
+  val_path: "data/bigobench_mapped/val.jsonl"
+  test_path: "data/bigobench_mapped/test.jsonl"
+  code_field: "code"
+  label_field: "time_complexity_mapped"
+  preprocessing:
+    min_code_length: 10
+    max_samples_per_split: 10000 # Ограничим для скорости, убери для финального запуска
+
+models:
+  - name: "catboost_opt"
+    type: "catboost"
+    params:
+      boosting_type: "catboost"
+      # Базовые параметры
+      loss_function: "MultiClass"
+      task_type: "GPU"
+      devices: "0"
+      verbose: false
+
+optimization:
+  enabled: true
+  n_trials: 50      # Количество итераций подбора
+  timeout: 3600     # Максимум 1 час
+  metric: "f1_macro"
+  search_space:
+    learning_rate:
+      type: "float"
+      low: 0.01
+      high: 0.3
+      log: true
+    depth:
+      type: "int"
+      low: 4
+      high: 10
+    l2_leaf_reg:
+      type: "float"
+      low: 1
+      high: 10
+    iterations:
+      type: "int"
+      low: 500
+      high: 2000
+    random_strength:
+      type: "float"
+      low: 0.0
+      high: 10.0
+
+features:
+  extractors: ["complexity"]
+  remove_constant: true
+
+save_models: true
+generate_report: true

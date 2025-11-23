@@ -1,0 +1,77 @@
+name: "optimize_catboost_hybrid_pca_50k"
+description: "Гибрид: Jina (PCA=32) + AST на 50к"
+
+data:
+  train_path: "data/bigobench_mapped/train.jsonl"
+  val_path: "data/bigobench_mapped/val.jsonl"
+  test_path: "data/bigobench_mapped/test.jsonl"
+  code_field: "code"
+  label_field: "time_complexity_mapped"
+  
+  preprocessing:
+    min_code_length: 10
+    
+    # НОВАЯ СИСТЕМА ЛИМИТОВ
+    split_limits:
+      train: 50000
+      val: 10000
+      test: 10000
+
+  
+  features:
+    type: "hybrid"
+    remove_constant: true
+    
+    # Настройки Jina
+    model_name: "jinaai/jina-embeddings-v2-base-code"
+    batch_size: 32      # Можно побольше, т.к. PCA ест мало памяти
+    max_length: 1024
+    device: "cuda"
+    
+    # Настройки PCA
+    use_pca: true       # ВКЛЮЧАЕМ СЖАТИЕ
+    n_components: 32    # Сжимаем 768 -> 32
+
+models:
+  - name: "catboost_hybrid_pca"
+    type: "catboost"
+    params:
+      loss_function: "MultiClass"
+      task_type: "GPU"
+      devices: "0"
+      verbose: false
+      # Включаем балансировку, так как теперь у нас есть надежные AST признаки
+      auto_class_weights: "Balanced" 
+
+optimization:
+  enabled: true
+  n_trials: 20
+  timeout: 3600
+  metric: "f1_macro"
+  search_space:
+    learning_rate:
+      type: "float"
+      low: 0.01
+      high: 0.2
+      log: true
+    depth:
+      type: "int"
+      low: 4
+      high: 8
+    l2_leaf_reg:
+      type: "float"
+      low: 1
+      high: 10
+    iterations:
+      type: "int"
+      low: 500
+      high: 1500
+
+evaluation_metrics:
+  - f1_macro
+  - recall_macro
+  - accuracy
+  - precision_macro
+
+save_models: true
+generate_report: true

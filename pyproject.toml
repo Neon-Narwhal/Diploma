@@ -9,6 +9,7 @@ dependencies = [
     "complexipy>=4.2.0",
     "complexity-analyzer>=0.1.0",
     "datasets>=4.4.1",
+    "einops>=0.8.1",
     "flake8>=7.0.0",
     "ipykernel>=6.30.1",
     "jupyter>=1.1.1",
@@ -28,6 +29,7 @@ dependencies = [
     "tokenizers>=0.22.1",
     "torch",
     "tqdm>=4.65.0",
+    "transformers>=4.57.1",
     "vulture>=2.14",
     "xgboost>=3.1.1",
 ]

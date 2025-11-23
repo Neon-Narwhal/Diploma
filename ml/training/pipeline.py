@@ -63,22 +63,13 @@ class MLPipeline:
         y_train: np.ndarray,
         X_test: Optional[np.ndarray] = None,
         y_test: Optional[np.ndarray] = None,
+        X_val: Optional[np.ndarray] = None,    # Добавлен аргумент
+        y_val: Optional[np.ndarray] = None,    # Добавлен аргумент
         code_samples_train: Optional[List[str]] = None,
         code_samples_test: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Запуск полного pipeline.
-        
-        Args:
-            X_train: признаки для обучения (если уже извлечены)
-            y_train: таргет для обучения
-            X_test: признаки для теста
-            y_test: таргет для теста
-            code_samples_train: исходный код для извлечения признаков (train)
-            code_samples_test: исходный код для извлечения признаков (test)
-            
-        Returns:
-            Результаты обучения и оценки
         """
         # 1. Feature engineering (если нужно)
         if code_samples_train is not None:
@@ -90,32 +81,49 @@ class MLPipeline:
         
         # 2. Оптимизация гиперпараметров (если нужно)
         if self.optimization_config:
-            self._optimize_hyperparameters(X_train, y_train)
+            # Используем val сет для оптимизации, если есть
+            self._optimize_hyperparameters(X_train, y_train, X_val, y_val)
         
         # 3. Обучение модели
-        if self.cv_config:
-            # С cross-validation
+        if self.cv_config and self.cv_config.get('enabled', False):
+            # С cross-validation (если включено явно)
             cv_results = self._train_with_cv(X_train, y_train)
             self.results['cv_results'] = cv_results
         
-        # Финальное обучение на всех данных
+        # Финальное обучение на train
+        # Если есть val сет, используем его для early stopping (если модель поддерживает)
         self.model = ModelFactory.create(self.model_config)
-        self.model.fit(X_train, y_train)
+        
+        # Пробуем передать eval_set, если модель это поддерживает (как CatBoost)
+        try:
+            if X_val is not None and y_val is not None:
+                self.model.fit(X_train, y_train, eval_set=(X_val, y_val))
+            else:
+                self.model.fit(X_train, y_train)
+        except TypeError:
+            # Если eval_set не поддерживается, обучаем просто так
+            self.model.fit(X_train, y_train)
         
         # 4. Оценка на train
         train_metrics = self._evaluate(X_train, y_train, prefix='train')
         self.results['train_metrics'] = train_metrics
         
-        # 5. Оценка на test (если есть)
+        # 5. Оценка на val (если есть)
+        if X_val is not None and y_val is not None:
+            val_metrics = self._evaluate(X_val, y_val, prefix='val')
+            self.results['val_metrics'] = val_metrics
+        
+        # 6. Оценка на test (если есть)
         if X_test is not None and y_test is not None:
             test_metrics = self._evaluate(X_test, y_test, prefix='test')
             self.results['test_metrics'] = test_metrics
         
-        # 6. Логирование
+        # 7. Логирование
         if self.logger:
             self._log_results()
         
         return self.results
+
     
     def _prepare_features(
         self,
@@ -137,25 +145,46 @@ class MLPipeline:
         return X_train, X_test
     
     def _optimize_hyperparameters(
-        self,
-        X: np.ndarray,
-        y: np.ndarray,
+        self, 
+        X_train: np.ndarray, 
+        y_train: np.ndarray,
+        X_val: Optional[np.ndarray] = None,
+        y_val: Optional[np.ndarray] = None
     ):
         """Оптимизация гиперпараметров"""
-        optimizer = OptunaOptimizer(**self.optimization_config)
+        if not self.optimization_config:
+            return
+
+        print(f"Запуск оптимизации гиперпараметров ({self.optimization_config.get('n_trials', 10)} trials)...")
         
-        opt_results = optimizer.optimize(
-            model_type=self.model_config.type,
-            X=X,
-            y=y,
-            search_space=self.optimization_config.get('search_space', {}),
-            metric=self.optimization_config.get('metric', 'accuracy'),
+        from ml.training.optimization import OptunaOptimizer
+        
+        optimizer = OptunaOptimizer(
+            model_config=self.model_config,
+            optimization_config=self.optimization_config,
+            cv_config=self.cv_config  # Используется, если нет X_val
         )
         
-        # Обновляем конфиг лучшими параметрами
-        self.model_config.params = opt_results['best_params']
-        self.results['optimization'] = opt_results
-    
+        # Если есть val сет, используем его
+        # Если нет - optimizer сам решит использовать CV (если реализовано)
+        best_params, best_value = optimizer.optimize(
+            X_train, y_train, 
+            X_val=X_val, 
+            y_val=y_val
+        )
+        
+        # Обновляем параметры модели
+        self.model_config.params.update(best_params)
+        
+        # Сохраняем результаты
+        self.results['optimization'] = {
+            'best_params': best_params,
+            'best_value': best_value,
+            'n_trials': self.optimization_config.get('n_trials')
+        }
+        
+        print(f"✓ Оптимизация завершена. Best score: {best_value:.4f}")
+
     def _train_with_cv(
         self,
         X: np.ndarray,

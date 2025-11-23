@@ -1,193 +1,154 @@
 """
-Извлечение признаков из кода через AST анализ.
+Извлечение признаков из кода: AST метрики + TF-IDF.
 """
 
 import sys
-from pathlib import Path
+import ast
 import numpy as np
 import pandas as pd
-import ast
 from typing import List, Dict, Any, Optional
+from sklearn.feature_extraction.text import TfidfVectorizer
+from pathlib import Path
 
-# Добавляем корень проекта
 project_root = Path(__file__).parent.parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(project_root))
 
 
 class ComplexityFeatureExtractor:
     """
-    Извлечение признаков из кода через AST анализ.
-    Гарантированно рабочая версия.
+    Гибридный экстрактор: AST статистика + TF-IDF топ слов.
     """
     
-    def __init__(self, feature_names: Optional[List[str]] = None):
+    def __init__(self, feature_names: Optional[List[str]] = None, max_tfidf_features: int = 2000):
         self.feature_names = feature_names
+        self.max_tfidf_features = max_tfidf_features
         
-        self.all_features = [
-            'lines_of_code',
-            'num_functions',
-            'num_classes',
-            'num_methods',
-            'num_loops',
-            'num_for_loops',
-            'num_while_loops',
-            'num_conditionals',
-            'num_try_blocks',
-            'num_with_blocks',
-            'max_nesting_depth',
-            'num_variables',
-            'num_imports',
-            'num_binary_ops',
-            'num_compare_ops',
-            'num_bool_ops',
-            'num_return_stmts',
-            'num_assignments',
-            'num_function_calls',
-            'avg_function_length',
+        # TF-IDF для поиска ключевых слов (sort, recursive, while, nested...)
+        self.tfidf = TfidfVectorizer(
+            ngram_range=(1, 3),
+            max_features=max_tfidf_features,
+            stop_words='english',
+            analyzer='word',
+            token_pattern=r"(?u)\b\w\w+\b"
+        )
+        self.is_fitted = False
+        
+        # Базовые AST признаки
+        self.ast_features = [
+            'lines_of_code', 'num_functions', 'num_classes', 'num_methods',
+            'num_loops', 'num_for_loops', 'num_while_loops',
+            'num_conditionals', 'num_try_blocks', 'max_nesting_depth',
+            'num_return_stmts', 'num_function_calls', 'num_recursion',
+            'num_variables', 'num_imports', 'avg_line_length'
         ]
     
     def extract(self, code_samples: List[str]) -> pd.DataFrame:
         """Извлечение признаков из списка кодов"""
-        features_list = []
+        # 1. Извлекаем AST признаки
+        ast_data = []
+        # print(f"  Извлечение AST признаков ({len(code_samples)} примеров)...")
+        for code in code_samples:
+            ast_data.append(self._extract_ast(code))
         
-        for i, code in enumerate(code_samples):
-            if i % 1000 == 0:
-                print(f"  Обработано {i}/{len(code_samples)} примеров...", end='\r')
+        df_ast = pd.DataFrame(ast_data)
+        
+        # 2. Извлекаем TF-IDF признаки
+        # print(f"  Извлечение TF-IDF признаков...")
+        if not self.is_fitted:
+            # Обучаем TF-IDF только если еще не обучен (обычно на Train)
+            tfidf_matrix = self.tfidf.fit_transform(code_samples)
+            self.is_fitted = True
+        else:
+            # На Val/Test только применяем
+            tfidf_matrix = self.tfidf.transform(code_samples)
             
-            features = self._extract_single(code)
-            features_list.append(features)
+        # Конвертируем в DataFrame
+        tfidf_cols = [f"tfidf_{i}" for i in range(tfidf_matrix.shape[1])]
+        df_tfidf = pd.DataFrame(tfidf_matrix.toarray(), columns=tfidf_cols)
         
-        print(f"  Обработано {len(code_samples)}/{len(code_samples)} примеров")
+        # 3. Объединяем
+        result = pd.concat([df_ast, df_tfidf], axis=1)
         
-        df = pd.DataFrame(features_list)
-        
+        # Если нужны конкретные колонки - фильтруем
         if self.feature_names:
-            available = [f for f in self.feature_names if f in df.columns]
-            df = df[available]
+            # Добавляем недостающие колонки нулями (на случай расхождений)
+            for col in self.feature_names:
+                if col not in result.columns:
+                    result[col] = 0.0
+            result = result[self.feature_names]
         
-        return df
+        return result
     
-    def _extract_single(self, code: str) -> Dict[str, float]:
+    def _extract_ast(self, code: str) -> Dict[str, float]:
         """Извлечение признаков из одного кода"""
-        features = {name: 0.0 for name in self.all_features}
+        features = {name: 0.0 for name in self.ast_features}
         
         try:
+            features['lines_of_code'] = len(code.split('\n'))
+            if features['lines_of_code'] > 0:
+                features['avg_line_length'] = len(code) / features['lines_of_code']
+
             tree = ast.parse(code)
             
-            # Базовые метрики
-            features['lines_of_code'] = len(code.split('\n'))
+            # Проверка на рекурсию
+            func_names = set()
             
-            # Счетчики для функций
-            function_lengths = []
-            
-            # Обход AST
             for node in ast.walk(tree):
-                # Функции
                 if isinstance(node, ast.FunctionDef):
                     features['num_functions'] += 1
-                    # Длина функции
-                    if hasattr(node, 'body'):
-                        function_lengths.append(len(node.body))
-                
-                # Классы и методы
+                    func_names.add(node.name)
                 elif isinstance(node, ast.ClassDef):
                     features['num_classes'] += 1
-                    # Методы в классе
-                    for item in node.body:
-                        if isinstance(item, ast.FunctionDef):
-                            features['num_methods'] += 1
-                
-                # Циклы
-                elif isinstance(node, ast.For):
+                elif isinstance(node, (ast.For, ast.While)):
                     features['num_loops'] += 1
-                    features['num_for_loops'] += 1
-                
-                elif isinstance(node, ast.While):
-                    features['num_loops'] += 1
-                    features['num_while_loops'] += 1
-                
-                # Условия
+                    if isinstance(node, ast.For): features['num_for_loops'] += 1
+                    else: features['num_while_loops'] += 1
                 elif isinstance(node, ast.If):
                     features['num_conditionals'] += 1
-                
-                # Try блоки
                 elif isinstance(node, ast.Try):
                     features['num_try_blocks'] += 1
-                
-                # With блоки
-                elif isinstance(node, ast.With):
-                    features['num_with_blocks'] += 1
-                
-                # Переменные (присваивания)
-                elif isinstance(node, ast.Assign):
-                    features['num_assignments'] += 1
-                    for target in node.targets:
-                        if isinstance(target, ast.Name):
-                            features['num_variables'] += 1
-                
-                # Импорты
-                elif isinstance(node, (ast.Import, ast.ImportFrom)):
-                    features['num_imports'] += 1
-                
-                # Операторы
-                elif isinstance(node, ast.BinOp):
-                    features['num_binary_ops'] += 1
-                
-                elif isinstance(node, ast.Compare):
-                    features['num_compare_ops'] += 1
-                
-                elif isinstance(node, ast.BoolOp):
-                    features['num_bool_ops'] += 1
-                
-                # Return
                 elif isinstance(node, ast.Return):
                     features['num_return_stmts'] += 1
-                
-                # Вызовы функций
+                elif isinstance(node, (ast.Import, ast.ImportFrom)):
+                    features['num_imports'] += 1
+                elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+                    features['num_variables'] += 1
+                    
                 elif isinstance(node, ast.Call):
                     features['num_function_calls'] += 1
-            
-            # Максимальная глубина вложенности
+                    # Проверка рекурсии: вызов функции внутри самой себя
+                    if isinstance(node.func, ast.Name) and node.func.id in func_names:
+                        features['num_recursion'] = 1
+                        
             features['max_nesting_depth'] = self._compute_max_depth(tree)
             
-            # Средняя длина функции
-            if function_lengths:
-                features['avg_function_length'] = np.mean(function_lengths)
-            
-        except SyntaxError:
-            # Невалидный код - оставляем нули
-            pass
-        except Exception as e:
-            # Любая другая ошибка
+        except:
+            # Если синтаксическая ошибка - возвращаем нули
             pass
         
         return features
     
     def _compute_max_depth(self, tree: ast.AST) -> int:
-        """Вычисление максимальной глубины вложенности"""
         def get_depth(node, current_depth=0):
-            max_child_depth = current_depth
-            
+            max_d = current_depth
             for child in ast.iter_child_nodes(node):
-                # Увеличиваем глубину для вложенных блоков
-                if isinstance(child, (ast.For, ast.While, ast.If, ast.With, 
-                                     ast.Try, ast.FunctionDef, ast.ClassDef)):
-                    child_depth = get_depth(child, current_depth + 1)
+                if isinstance(child, (ast.For, ast.While, ast.If, ast.FunctionDef, ast.ClassDef)):
+                    max_d = max(max_d, get_depth(child, current_depth + 1))
                 else:
-                    child_depth = get_depth(child, current_depth)
-                
-                max_child_depth = max(max_child_depth, child_depth)
-            
-            return max_child_depth
-        
+                    max_d = max(max_d, get_depth(child, current_depth))
+            return max_d
         return get_depth(tree)
 
 
 class TokenFeatureExtractor:
-    """Извлечение токен-уровневых признаков"""
+    """
+    Извлечение токен-уровневых признаков (Заглушка для совместимости).
+    """
     
     def extract(self, code_samples: List[str], tokenizer=None) -> pd.DataFrame:
+        """
+        Извлечение токен-статистик.
+        """
         features_list = []
         
         for code in code_samples:
@@ -198,13 +159,6 @@ class TokenFeatureExtractor:
                 'num_whitespaces': sum(c.isspace() for c in code),
                 'num_alphanumeric': sum(c.isalnum() for c in code),
             }
-            
-            if tokenizer:
-                tokens = tokenizer.encode(code)
-                features['num_tokens'] = len(tokens)
-                features['unique_tokens'] = len(set(tokens))
-                features['token_diversity'] = len(set(tokens)) / len(tokens) if tokens else 0
-            
             features_list.append(features)
         
         return pd.DataFrame(features_list)
