@@ -2,7 +2,7 @@
 import json
 import requests
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Iterator
+from typing import Dict, Any, List, Optional, Iterator, Union
 import logging
 from dataclasses import dataclass
 

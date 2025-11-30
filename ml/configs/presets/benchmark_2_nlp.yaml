@@ -1,0 +1,54 @@
+name: "benchmark_2_nlp"
+description: "Сравнение моделей на Jina Embeddings (PCA)"
+
+data:
+  train_path: "data/bigobench_mapped/train.jsonl"
+  val_path: "data/bigobench_mapped/val.jsonl"
+  test_path: "data/bigobench_mapped/test.jsonl"
+  code_field: "code"
+  label_field: "time_complexity_mapped"
+  
+  preprocessing:
+    min_code_length: 10
+    split_limits: {train: 80000, val: 10000, test: 10000}
+  
+  features:
+    type: "bert"        # ТОЛЬКО БЕРТ
+    model_name: "jinaai/jina-embeddings-v2-base-code"
+    batch_size: 8      # Защита от NoneType ошибки
+    max_length: 1024
+    device: "cuda"
+    use_pca: true       # Обязательно сжимаем
+    n_components: 32
+    remove_constant: true
+
+models:
+  - name: "catboost_nlp"
+    type: "catboost"
+    params: {loss_function: "MultiClass", task_type: "GPU", devices: "0", verbose: false}
+
+  - name: "xgboost_nlp"
+    type: "xgboost"
+    params: {objective: "multi:softmax", tree_method: "hist", device: "cuda", verbosity: 0}
+
+  - name: "lgbm_nlp"
+    type: "lightgbm"
+    params: {objective: "multiclass", device: "gpu", verbosity: -1}
+
+optimization:
+  enabled: true
+  n_trials: 50
+  timeout: 3600
+  metric: "f1_macro"
+  early_stopping:
+    patience: 100
+    metric: "f1_macro" 
+  search_space:
+    learning_rate: {type: "float", low: 0.01, high: 0.3, log: true}
+    depth: {type: "int", low: 4, high: 10}
+    iterations: {type: "int", low: 600, high: 1500}
+    l2_leaf_reg: {type: "float", low: 1, high: 10}
+
+evaluation_metrics: [f1_macro, accuracy, precision_macro, recall_macro]
+save_models: true
+generate_report: true

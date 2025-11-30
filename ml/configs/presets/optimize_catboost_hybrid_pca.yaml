@@ -1,4 +1,4 @@
-name: "optimize_catboost_hybrid_pca_50k"
+name: "optimize_catboost_hybrid_pca_50k_v2"
 description: "Гибрид: Jina (PCA=32) + AST на 50к"
 
 data:
@@ -19,12 +19,12 @@ data:
 
   
   features:
-    type: "hybrid"
+    type: "complexity"
     remove_constant: true
     
     # Настройки Jina
     model_name: "jinaai/jina-embeddings-v2-base-code"
-    batch_size: 32      # Можно побольше, т.к. PCA ест мало памяти
+    batch_size:  32     # Можно побольше, т.к. PCA ест мало памяти
     max_length: 1024
     device: "cuda"
     
@@ -33,7 +33,7 @@ data:
     n_components: 32    # Сжимаем 768 -> 32
 
 models:
-  - name: "catboost_hybrid_pca"
+  - name: "catboost_ast_50k"
     type: "catboost"
     params:
       loss_function: "MultiClass"
@@ -41,11 +41,11 @@ models:
       devices: "0"
       verbose: false
       # Включаем балансировку, так как теперь у нас есть надежные AST признаки
-      auto_class_weights: "Balanced" 
+      # auto_class_weights: "Balanced" 
 
 optimization:
   enabled: true
-  n_trials: 20
+  n_trials: 50
   timeout: 3600
   metric: "f1_macro"
   search_space:

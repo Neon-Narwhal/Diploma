@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 from typing import List, Dict, Any, Optional
 from sklearn.feature_extraction.text import TfidfVectorizer
+from complexity_analyzers.analyzers.ast_advanced import AdvancedASTAnalyzer
+from complexity_analyzers.core.base import AnalysisContext
 from pathlib import Path
 
 project_root = Path(__file__).parent.parent.parent
@@ -22,6 +24,7 @@ class ComplexityFeatureExtractor:
     def __init__(self, feature_names: Optional[List[str]] = None, max_tfidf_features: int = 2000):
         self.feature_names = feature_names
         self.max_tfidf_features = max_tfidf_features
+        self.analyzer = AdvancedASTAnalyzer()
         
         # TF-IDF для поиска ключевых слов (sort, recursive, while, nested...)
         self.tfidf = TfidfVectorizer(
@@ -48,7 +51,18 @@ class ComplexityFeatureExtractor:
         ast_data = []
         # print(f"  Извлечение AST признаков ({len(code_samples)} примеров)...")
         for code in code_samples:
-            ast_data.append(self._extract_ast(code))
+            ctx = AnalysisContext(source_code=code)
+            result = self.analyzer.analyze(ctx)
+            
+            # Вытаскиваем плоские метрики для ML из результата
+            metrics = {
+                'nested_depth': result.metrics.nested_depth,
+                'loop_count': result.metrics.loop_count,
+                # Вытаскиваем новые фичи из debug_info или loop_analysis
+                'has_log_step': int(result.debug_info['loop_analysis']['has_logarithmic_step']),
+                'has_dep_loop': int(result.debug_info['loop_analysis']['has_dependent_inner_loop'])
+            }
+            ast_data.append(metrics)
         
         df_ast = pd.DataFrame(ast_data)
         

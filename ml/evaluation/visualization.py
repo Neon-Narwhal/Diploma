@@ -111,6 +111,9 @@ class ModelVisualizer:
             save_path: путь для сохранения
         """
         n_metrics = len(metrics)
+        if n_metrics == 0:
+            print("Warning: No metrics to plot")
+            return None
         fig, axes = plt.subplots(1, n_metrics, figsize=(n_metrics * 5, 6))
         
         if n_metrics == 1:

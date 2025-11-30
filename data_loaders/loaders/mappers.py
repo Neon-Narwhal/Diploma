@@ -38,13 +38,16 @@ class ComplexityMapper:
         'O(logn*logm*logk)': 'logarithmic',
         'O(logn*logm*logk*logl)': 'logarithmic',
         
-        # Linear - O(n)
+        # Linear - O(n) — ТОЛЬКО одномерные
         'O(n)': 'linear',
-        'O(n+m)': 'linear',
-        'O(n+m+k)': 'linear',
-        'O(n*m)': 'linear',  # при m=O(1)
-        'O(n+m**2)': 'linear',  # при m << n, доминирует n
-        'O(n**2+m)': 'linear',  # при m << n
+
+        # Bivariate - O(n*m), O(n+m) — двумерные линейные
+        'O(n+m)': 'bivariate',
+        'O(n+m+k)': 'bivariate',
+        'O(n*m)': 'bivariate',  # НЕ linear
+        'O(n+m**2)': 'bivariate',  # двумерная структура
+        'O(n**2+m)': 'bivariate',  # квадратичная по n, но двумерная
+
         
         # Linearithmic - O(nlogn)
         'O(nlogn)': 'linearithmic',
@@ -84,10 +87,11 @@ class ComplexityMapper:
         
         # Linear - O(n)
         'O(n)': 'linear',
-        'O(n+m)': 'linear',
+        'O(n+m)': 'linear',  # для space O(n+m) можно оставить linear
         'O(n+m+k)': 'linear',
         'O(nlogn)': 'linear',  # space обычно O(n) для sorting
         'O(n+m)log(n+m)': 'linear',
+
         
         # Product - O(n*m)
         'O(n*m)': 'product',

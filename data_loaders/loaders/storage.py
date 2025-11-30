@@ -1,6 +1,8 @@
 """Сохранение датасетов в различные форматы"""
 from pathlib import Path
 from typing import List, Dict
+from sklearn.model_selection import train_test_split
+from collections import Counter
 import json
 import logging
 
@@ -57,50 +59,51 @@ class DatasetSplitter:
     """Разделение датасета на train/val/test"""
     
     @staticmethod
-    def split_by_problems(
-        samples: List[Dict],
-        train_ratio: float = 0.7,
-        val_ratio: float = 0.15,
-        test_ratio: float = 0.15,
-        random_seed: int = 42
-    ) -> Dict[str, List[Dict]]:
-        """Problem-level split для предотвращения leakage"""
-        import random
-        random.seed(random_seed)
+    def split_by_problems(samples, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15):
+        """
+        Стратифицированный сплит по time_complexity_mapped
+        """
+        # Проверка соотношений
+        assert abs(train_ratio + val_ratio + test_ratio - 1.0) < 0.01
         
-        # Группировка по problem_id
-        problems_to_solutions = {}
-        for sample in samples:
-            problem_id = sample['problem_id']
-            if problem_id not in problems_to_solutions:
-                problems_to_solutions[problem_id] = []
-            problems_to_solutions[problem_id].append(sample)
+        # Извлекаем labels для стратификации
+        labels = [s['time_complexity_mapped'] for s in samples]
         
-        # Разделение задач
-        problem_ids = list(problems_to_solutions.keys())
-        random.shuffle(problem_ids)
+        # Логируем распределение ДО сплита
+        logger.info("Распределение классов BEFORE split:")
+        label_counts = Counter(labels)
+        for label, count in sorted(label_counts.items(), key=lambda x: x[1], reverse=True):
+            logger.info(f"  {label:<15} {count:>8,} ({count/len(samples)*100:>5.1f}%)")
         
-        n_problems = len(problem_ids)
-        n_train = int(n_problems * train_ratio)
-        n_val = int(n_problems * val_ratio)
+        # Сначала отделяем train от (val+test)
+        train_samples, temp_samples, train_labels, temp_labels = train_test_split(
+            samples,
+            labels,
+            train_size=train_ratio,
+            stratify=labels,
+            random_state=42
+        )
         
-        train_problems = set(problem_ids[:n_train])
-        val_problems = set(problem_ids[n_train:n_train + n_val])
-        test_problems = set(problem_ids[n_train + n_val:])
+        # Теперь делим temp на val и test
+        val_ratio_adjusted = val_ratio / (val_ratio + test_ratio)
+        val_samples, test_samples, val_labels, test_labels = train_test_split(
+            temp_samples,
+            temp_labels,
+            train_size=val_ratio_adjusted,
+            stratify=temp_labels,
+            random_state=42
+        )
         
-        # Распределение решений
-        splits = {'train': [], 'val': [], 'test': []}
+        # Логируем распределение ПОСЛЕ сплита
+        logger.info("\nРаспределение классов AFTER split:")
+        for split_name, split_labels in [('train', train_labels), ('val', val_labels), ('test', test_labels)]:
+            logger.info(f"\n{split_name.upper()}:")
+            split_counts = Counter(split_labels)
+            for label, count in sorted(split_counts.items(), key=lambda x: x[1], reverse=True):
+                logger.info(f"  {label:<15} {count:>8,} ({count/len(split_labels)*100:>5.1f}%)")
         
-        for sample in samples:
-            problem_id = sample['problem_id']
-            if problem_id in train_problems:
-                splits['train'].append(sample)
-            elif problem_id in val_problems:
-                splits['val'].append(sample)
-            else:
-                splits['test'].append(sample)
-        
-        logger.info(f"Split: train={len(splits['train'])}, "
-                   f"val={len(splits['val'])}, test={len(splits['test'])}")
-        
-        return splits
+        return {
+            'train': train_samples,
+            'val': val_samples,
+            'test': test_samples
+        }

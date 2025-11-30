@@ -60,23 +60,41 @@ class BoostingModel(BaseModel):
     def fit(self, X: np.ndarray, y: np.ndarray, eval_set=None) -> 'BoostingModel':
         """Обучение модели"""
         fit_params = {}
+
+            # Вычисляем sample_weight для XGBoost
+        if self.boosting_type == 'xgboost':
+            from sklearn.utils.class_weight import compute_sample_weight
+            sample_weights = compute_sample_weight(
+                class_weight='balanced',
+                y=y
+            )
+            fit_params['sample_weight'] = sample_weights
         
         # Поддержка eval_set для бустингов
         if eval_set is not None:
             if self.boosting_type == 'catboost':
                 fit_params['eval_set'] = eval_set
-                fit_params['early_stopping_rounds'] = 50
+                fit_params['early_stopping_rounds'] = 100
+                fit_params['use_best_model'] = True
+                # CatBoost: eval_metric для f1_macro
+                if 'eval_metric' not in self.params:
+                    fit_params['eval_metric'] = 'TotalF1:average=Macro'
+            
             elif self.boosting_type == 'xgboost':
                 fit_params['eval_set'] = [eval_set]
-                fit_params['early_stopping_rounds'] = 50
+                fit_params['early_stopping_rounds'] = 100
                 fit_params['verbose'] = False
+                # XGBoost не поддерживает f1_macro напрямую, используем logloss
+            
             elif self.boosting_type == 'lightgbm':
-                fit_params['eval_set'] = eval_set
-                """
+                fit_params['eval_set'] = [eval_set]
+                # LightGBM: используем callback для early stopping
+                from lightgbm import early_stopping, log_evaluation
                 fit_params['callbacks'] = [
-                    # lgb callbacks if needed
+                    early_stopping(stopping_rounds=100, verbose=False),
+                    log_evaluation(period=0)  # отключаем вывод
                 ]
-                """
+
         
         self.model.fit(X, y, **fit_params)
         self.is_fitted = True

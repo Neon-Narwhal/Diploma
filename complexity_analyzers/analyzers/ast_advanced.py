@@ -5,8 +5,8 @@ from typing import Dict, Any, List, Optional, Set, Tuple
 from collections import defaultdict, deque
 
 from complexity_analyzers.core.base import BaseComplexityAnalyzer, AnalyzerType, AnalysisContext
-from core.result import ComplexityResult, ComplexityClass, ComplexityMetrics
-from core.enums import PatternType, DataStructureUsage
+from complexity_analyzers.core.result import ComplexityResult, ComplexityClass, ComplexityMetrics
+from complexity_analyzers.core.enums import PatternType, DataStructureUsage
 from .ast_patterns import PatternDetectorRegistry
 from .ast_features import ASTFeatureExtractor
 
@@ -19,6 +19,9 @@ class AdvancedLoopAnalyzer(ast.NodeVisitor):
         self.current_function: Optional[str] = None
         self.max_nesting: int = 0
         self.loop_variables: Set[str] = set()
+
+        self.has_logarithmic_step = False 
+        self.has_dependent_inner_loop = False
         
     def visit_FunctionDef(self, node: ast.FunctionDef):
         """Обработка определения функции"""
@@ -30,6 +33,13 @@ class AdvancedLoopAnalyzer(ast.NodeVisitor):
     def visit_For(self, node: ast.For):
         """Анализ for-цикла"""
         loop_info = self._analyze_loop(node, 'for')
+        
+        if isinstance(node.iter, ast.Call) and isinstance(node.iter.func, ast.Name) and node.iter.func.id == 'range':
+            for arg in node.iter.args:
+                if isinstance(arg, ast.Name) and arg.id in self.loop_variables:
+                    self.has_dependent_inner_loop = True
+                    loop_info['complexity_indicators'].append('dependent_range')
+        
         self._enter_loop(loop_info)
         self.generic_visit(node)
         self._exit_loop()
@@ -85,6 +95,16 @@ class AdvancedLoopAnalyzer(ast.NodeVisitor):
                     loop_info['variables'].add(var_node.id)
         
         return loop_info
+    
+    def visit_AugAssign(self, node: ast.AugAssign):
+        """Поиск логарифмических шагов (i *= 2, i //= 2)"""
+        if isinstance(node.op, (ast.Mult, ast.Div, ast.FloorDiv)):
+            # Если мы внутри цикла
+            if self.nesting_stack:
+                self.has_logarithmic_step = True
+                # Добавляем метку к текущему циклу
+                self.nesting_stack[-1]['complexity_indicators'].append('logarithmic_step')
+        self.generic_visit(node)
     
     def _analyze_comprehension(self, node: ast.AST, comp_type: str) -> Dict[str, Any]:
         """Анализ list/dict comprehension"""
@@ -439,7 +459,9 @@ class AdvancedASTAnalyzer(BaseComplexityAnalyzer):
             'loop_analysis': {
                 'total_loops': len(self.loop_analyzer.loops),
                 'max_nesting': self.loop_analyzer.max_nesting,
-                'loops': self.loop_analyzer.loops
+                'loops': self.loop_analyzer.loops,
+                'has_logarithmic_step': getattr(self.loop_analyzer, 'has_logarithmic_step', False),
+                'has_dependent_inner_loop': getattr(self.loop_analyzer, 'has_dependent_inner_loop', False)
             },
             'recursion_analysis': {
                 'recursive_functions': len([f for f in self.recursion_analyzer.functions.values() 
@@ -469,23 +491,31 @@ class AdvancedASTAnalyzer(BaseComplexityAnalyzer):
         loop_analysis = analysis_results['loop_analysis']
         max_nesting = loop_analysis['max_nesting']
         
-        # КРИТИЧНО: проверяем количество уникальных переменных в циклах
+        has_log_step = loop_analysis.get('has_logarithmic_step', False)
+        has_dep_loop = loop_analysis.get('has_dependent_inner_loop', False)
+        
         unique_loop_vars = len(set().union(*[loop['variables'] for loop in loop_analysis['loops']]))
         
-        # Если 2+ разных переменных в циклах → квадратичная
-        if unique_loop_vars >= 2 and max_nesting >= 2:
-            return ComplexityClass.QUADRATIC
-        elif max_nesting >= 3:
-            return ComplexityClass.CUBIC
-        elif max_nesting == 2:
-            return ComplexityClass.QUADRATIC
-        elif max_nesting == 1:
-            # Проверяем на nlogn
+        # ЛОГИКА С УЧЕТОМ НОВЫХ ФИЧ
+        if max_nesting == 1:
+            if has_log_step:
+                return ComplexityClass.LOGARITHMIC # O(log N)
             if self._has_sorting_in_loop(analysis_results):
                 return ComplexityClass.LINEARITHMIC
             return ComplexityClass.LINEAR
-        else:
-            return ComplexityClass.CONSTANT
+            
+        elif max_nesting == 2:
+            if has_log_step: # Например: for(N) { while(N/=2) }
+                return ComplexityClass.LINEARITHMIC # O(N log N)
+            if has_dep_loop:
+                return ComplexityClass.QUADRATIC # O(N^2)
+            return ComplexityClass.QUADRATIC
+            
+        elif max_nesting >= 3:
+            return ComplexityClass.CUBIC
+            
+        return ComplexityClass.CONSTANT
+
     
     def _calculate_confidence(self, analysis_results: Dict[str, Any]) -> float:
         """Расчет уверенности в результате"""
@@ -524,6 +554,10 @@ class AdvancedASTAnalyzer(BaseComplexityAnalyzer):
         return {
             'total_loops': len(self.loop_analyzer.loops),
             'max_nesting': self.loop_analyzer.max_nesting,
+            
+            'has_logarithmic_step': getattr(self.loop_analyzer, 'has_logarithmic_step', False),
+            'has_dependent_inner_loop': getattr(self.loop_analyzer, 'has_dependent_inner_loop', False),
+            
             'loop_details': [
                 {
                     'type': loop['type'],
@@ -534,6 +568,7 @@ class AdvancedASTAnalyzer(BaseComplexityAnalyzer):
                 for loop in self.loop_analyzer.loops
             ]
         }
+
     
     def _serialize_recursion_analysis(self) -> Dict[str, Any]:
         """Сериализация результатов анализа рекурсии"""

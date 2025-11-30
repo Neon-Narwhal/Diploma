@@ -14,7 +14,6 @@ from .core.result import ComplexityResult, ComplexityMetrics
 from .analyzers.ast_advanced import AdvancedASTAnalyzer
 from .analyzers.runtime_profiler import RuntimeProfiler
 from .analyzers.cfg_analyzer import CFGComplexityAnalyzer
-from .analyzers.ml_predictor import MLComplexityPredictor
 from .analyzers.dynamic_tracer import DynamicComplexityTracer
 from .metrics.calculator import UniversalMetricsCalculator
 from .analyzers.tools_profiler import ToolsIntegrationAnalyzer

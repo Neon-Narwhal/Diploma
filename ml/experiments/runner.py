@@ -114,17 +114,47 @@ class ExperimentRunner:
             result = pipeline.run(
                 X_train, y_train, 
                 X_test, y_test,
-                X_val=X_val,  # Передаем в pipeline
-                y_val=y_val   # Передаем в pipeline
+                X_val=X_val,
+                y_val=y_val
             )
+            
+            # === DUAL EVALUATION: grouped vs exact ===
+            if X_test is not None and y_test is not None:
+                try:
+                    # Предсказания на mapped классах (уже есть в result)
+                    y_pred_mapped = result.get('test_predictions')
+                    
+                    if y_pred_mapped is not None:
+                        from sklearn.metrics import f1_score, accuracy_score
+                        
+                        # Метрики grouped (7 классов)
+                        acc_grouped = accuracy_score(y_test, y_pred_mapped)
+                        f1_grouped = f1_score(y_test, y_pred_mapped, 
+                                             average='macro', zero_division=0)
+                        
+                        print(f"\n  GROUPED (7 классов):")
+                        print(f"    Accuracy: {acc_grouped:.3f}")
+                        print(f"    F1 Macro: {f1_grouped:.3f}")
+                        
+                        # Сохраняем в result
+                        result['grouped_metrics'] = {
+                            'accuracy': float(acc_grouped),
+                            'f1_macro': float(f1_grouped)
+                        }
+                        
+                        # TODO: exact метрики требуют original labels
+                        # Пока пропускаем, добавим после исправления DataLoader
+                        
+                except Exception as e:
+                    print(f"  Warning: Dual evaluation failed: {e}")
+            # === END DUAL EVALUATION ===
             
             # Сохранение модели
             if self.config.save_models:
                 model_path = f"ml/outputs/models/{model_config.name}.pkl"
                 pipeline.save_model(model_path)
                 print(f"✓ Модель сохранена: {model_path}")
-            
-            self.models[model_config.name] = pipeline.model
+
         
         return result
 
