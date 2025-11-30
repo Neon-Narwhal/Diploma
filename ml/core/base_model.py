@@ -13,19 +13,22 @@ class BaseModel(ABC):
     Обеспечивает единообразный интерфейс.
     """
     
-    def __init__(self, params: Optional[Dict[str, Any]] = None):
+    def __init__(self, params: Optional[Dict[str, Any]] = None, **kwargs):
         self.params = params or {}
+        self.params.update(kwargs)
+        
         self.model = None
         self.is_fitted = False
     
     @abstractmethod
-    def fit(self, X: np.ndarray, y: np.ndarray) -> 'BaseModel':
+    def fit(self, X: np.ndarray, y: np.ndarray, eval_set=None) -> 'BaseModel':
         """
         Обучение модели.
         
         Args:
             X: признаки (n_samples, n_features)
             y: таргет (n_samples,)
+            eval_set: (X_val, y_val) для валидации
             
         Returns:
             self для chaining
@@ -91,11 +94,16 @@ class BaseModel(ABC):
         """
         pass
     
-    def get_params(self) -> Dict[str, Any]:
-        """Получение параметров модели"""
+    # === SKLEARN COMPATIBILITY ===
+    
+    def get_params(self, deep: bool = True) -> Dict[str, Any]:
+        """
+        Получение параметров модели (совместимость со sklearn).
+        Аргумент deep обязателен для работы sklearn.clone().
+        """
         return self.params.copy()
     
     def set_params(self, **params) -> 'BaseModel':
-        """Установка параметров модели"""
+        """Установка параметров модели (совместимость со sklearn)"""
         self.params.update(params)
         return self

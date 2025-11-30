@@ -6,12 +6,12 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from ml.configs.experiment import ExperimentConfig
-from ml.utils.data_loader import DataLoader  # Импорт из utils
+from ml.utils.data_loader import DataLoader
 from ml.experiments.runner import ExperimentRunner
 
 def run_comparison():
     # Загрузка конфига
-    config_path = "ml/configs/presets/compare_all.yaml"
+    config_path =  "ml/configs/presets/benchmark_5_stacking_hybrid.yaml"  # "ml/configs/presets/benchmark_4_ovr_hybrid.yaml"
     config = ExperimentConfig.from_yaml(config_path)
     
     # Загрузка данных

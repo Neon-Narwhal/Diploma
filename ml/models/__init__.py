@@ -1,10 +1,16 @@
 """
-Реализации ML-моделей.
+Модели машинного обучения.
 """
 
-from ml.models.boosting import BoostingModel, CatBoostModel, XGBoostModel, LightGBMModel
-from ml.models.ensemble import VotingEnsemble
-from ml.models.hierarchical import PerClassModel, CascadeModel
+from .boosting import BoostingModel, CatBoostModel, XGBoostModel, LightGBMModel
+from .ensemble import (
+    VotingEnsemble, 
+    OvRBoostingModel,
+    OvRCatBoostModel, 
+    OvRXGBoostModel, 
+    OvRLightGBMModel,
+    StackingModel
+)
 
 __all__ = [
     'BoostingModel',
@@ -12,6 +18,9 @@ __all__ = [
     'XGBoostModel',
     'LightGBMModel',
     'VotingEnsemble',
-    'PerClassModel',
-    'CascadeModel',
+    'OvRBoostingModel',
+    'OvRCatBoostModel',
+    'OvRXGBoostModel',
+    'OvRLightGBMModel',
+    'StackingModel',
 ]

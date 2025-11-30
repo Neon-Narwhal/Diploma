@@ -107,7 +107,9 @@ class OptunaOptimizer:
     def _suggest_params(self, trial) -> Dict[str, Any]:
         """Генерация параметров на основе search_space из конфига"""
         params = {}
-        search_space = self.optimization_config.get('search_space', {})
+        search_space = (self.optimization_config.get('search_space') or 
+                        self.optimization_config.get('params') or 
+                        {})
         
         for name, config in search_space.items():
             param_type = config.get('type')

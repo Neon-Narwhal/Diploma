@@ -7,6 +7,11 @@ data:
   test_path: "data/bigobench_mapped/test.jsonl"
   code_field: "code"
   label_field: "time_complexity_mapped"
+
+  feature_cache:
+    enabled: true
+    cache_dir: "data/feature_cache"
+    cache_key: "hybrid_80k"
   
   preprocessing:
     min_code_length: 10

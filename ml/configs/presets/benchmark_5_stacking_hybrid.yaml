@@ -1,0 +1,39 @@
+name: "benchmark_5_stacking_hybrid"
+description: "Stacking Ensemble (4 models: CB, XGB, LGBM, OvR)"
+
+data:
+  train_path: "data/bigobench_mapped/train.jsonl"
+  val_path: "data/bigobench_mapped/val.jsonl"
+  test_path: "data/bigobench_mapped/test.jsonl"
+  
+  feature_cache:
+    enabled: true
+    cache_dir: "data/feature_cache"
+    cache_key: "hybrid_80k"
+    
+  preprocessing:
+    min_code_length: 10
+    split_limits: {train: 80000, val: 10000, test: 10000}
+  
+  features:
+    type: "hybrid"
+
+models:
+  - name: "stacking_mega_hybrid"
+    type: "stacking"
+    params:
+      pretrained_models:
+        - "ml/outputs/models/catboost_hybrid.pkl"
+        - "ml/outputs/models/xgboost_hybrid.pkl"
+        - "ml/outputs/models/lgbm_hybrid.pkl"
+        - "ml/outputs/models/ovr_catboost_hybrid.pkl"
+      
+      meta_model: "ridge"
+      cv: 5
+
+optimization:
+  enabled: false
+
+evaluation_metrics: [f1_macro, accuracy, precision_macro, recall_macro]
+save_models: true
+generate_report: true

@@ -87,12 +87,24 @@ class DataLoader:
         return cls(experiment_config['data'])
     
     def load(self) -> StandardizedData:
+        # === КЭШИРОВАНИЕ: проверка и загрузка ===
+        cache_path = self._get_cache_path()
+        
+        if cache_path:
+            cached_data = self._load_from_cache(cache_path)
+            if cached_data is not None:
+                print(f"✓ Признаки загружены из кэша: {cache_path.name}")
+                print(f"  Train: {cached_data.X_train.shape}")
+                print(f"  Val: {cached_data.X_val.shape}")
+                print(f"  Test: {cached_data.X_test.shape}")
+                return cached_data
+            else:
+                print(f"Кэш не найден, извлекаем признаки...")
+        
         # Читаем настройки лимитов
         limits = self.config.get('preprocessing', {}).get('split_limits', {})
-        # Fallback на старый параметр для совместимости
         global_limit = self.config.get('preprocessing', {}).get('max_samples_per_split')
         
-        # Определяем лимиты для каждого сплита
         lim_train = limits.get('train', global_limit)
         lim_val = limits.get('val', global_limit)
         lim_test = limits.get('test', global_limit)
@@ -137,7 +149,7 @@ class DataLoader:
         print(f"\nИтоговые данные: {X_train.shape[1]} признаков")
         print(f"  Классы: {len(encoder.classes_)}")
         
-        return StandardizedData(
+        data = StandardizedData(
             X_train=X_train, y_train=y_train,
             X_val=X_val, y_val=y_val,
             X_test=X_test, y_test=y_test,
@@ -147,6 +159,14 @@ class DataLoader:
             code_val=codes_val,
             code_test=codes_test,
         )
+        
+        # === КЭШИРОВАНИЕ: сохранение ===
+        if cache_path:
+            self._save_to_cache(data, cache_path)
+            print(f"✓ Признаки сохранены в кэш: {cache_path.name}")
+        
+        return data
+
     
     def _load_jsonl(self, path: str, limit: Optional[int] = None) -> List[Dict]:
         """Чтение JSONL файла"""
@@ -248,3 +268,70 @@ class DataLoader:
             return X_train[:, mask], X_val[:, mask], X_test[:, mask]
         
         return X_train, X_val, X_test
+    
+    def _get_cache_path(self) -> Optional[Path]:
+        """Получение пути к кэшу"""
+        cache_config = self.config.get('feature_cache', {})
+        
+        if not cache_config.get('enabled', False):
+            return None
+        
+        cache_key = cache_config.get('cache_key')
+        if not cache_key:
+            return None
+        
+        cache_dir = Path(cache_config.get('cache_dir', 'data/feature_cache'))
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        
+        return cache_dir / f"{cache_key}.npz"
+
+    def _load_from_cache(self, cache_path: Path) -> Optional[StandardizedData]:
+        """Загрузка признаков из кэша"""
+        if not cache_path.exists():
+            return None
+        
+        try:
+            data = np.load(cache_path, allow_pickle=True)
+            
+            # Восстанавливаем label_encoder
+            from sklearn.preprocessing import LabelEncoder
+            encoder = LabelEncoder()
+            encoder.classes_ = data['label_encoder_classes']
+            
+            return StandardizedData(
+                X_train=data['X_train'],
+                y_train=data['y_train'],
+                X_val=data['X_val'],
+                y_val=data['y_val'],
+                X_test=data['X_test'],
+                y_test=data['y_test'],
+                label_encoder=encoder,
+                feature_names=list(data.get('feature_names', [])),
+                code_train=list(data.get('code_train', [])),
+                code_val=list(data.get('code_val', [])),
+                code_test=list(data.get('code_test', []))
+            )
+        except Exception as e:
+            print(f"Ошибка загрузки кэша: {e}")
+            return None
+
+    def _save_to_cache(self, data: StandardizedData, cache_path: Path):
+        """Сохранение признаков в кэш"""
+        try:
+            np.savez_compressed(
+                cache_path,
+                X_train=data.X_train,
+                y_train=data.y_train,
+                X_val=data.X_val,
+                y_val=data.y_val,
+                X_test=data.X_test,
+                y_test=data.y_test,
+                label_encoder_classes=data.label_encoder.classes_,
+                feature_names=data.feature_names,
+                code_train=data.code_train,
+                code_val=data.code_val,
+                code_test=data.code_test
+            )
+        except Exception as e:
+            print(f"Ошибка сохранения кэша: {e}")
+

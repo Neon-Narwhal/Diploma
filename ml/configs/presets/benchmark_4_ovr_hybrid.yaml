@@ -1,0 +1,50 @@
+name: "benchmark_4_ovr_hybrid"
+description: "One-vs-Rest Multi-Boosting на hybrid признаках (Optimized)"
+
+data:
+  train_path: "data/bigobench_mapped/train.jsonl"
+  val_path: "data/bigobench_mapped/val.jsonl"
+  test_path: "data/bigobench_mapped/test.jsonl"
+  
+  # Используем кэш для ускорения (обязательно!)
+  feature_cache:
+    enabled: true
+    cache_dir: "data/feature_cache"
+    cache_key: "hybrid_80k"
+  
+  preprocessing:
+    min_code_length: 10
+    split_limits: {train: 80000, val: 10000, test: 10000}
+  
+  features:
+    type: "hybrid"
+
+models:
+  - name: "ovr_catboost_hybrid"
+    type: "ovr_catboost"
+    params:
+      loss_function: "Logloss"  # Бинарный лосс для каждой подмодели
+      task_type: "GPU"
+      devices: "0"
+      verbose: false
+      # Стартовые параметры (будут перезаписаны Optuna)
+      depth: 4
+      iterations: 500
+      l2_leaf_reg: 5
+
+optimization:
+  enabled: true
+  n_trials: 50  # 20 попыток (займет ~2 часа)
+  metric: "f1_macro"
+  direction: "maximize"
+  params:
+    # Диапазоны для поиска
+    learning_rate: {type: "float", low: 0.01, high: 0.3, log: true}
+    depth: {type: "int", low: 3, high: 6}  # Неглубокие деревья для OvR обычно лучше
+    l2_leaf_reg: {type: "float", low: 1, high: 10, log: true}
+    iterations: {type: "int", low: 300, high: 800, step: 100}
+    # random_strength: {type: "float", low: 0.1, high: 10} # Можно добавить для шумных данных
+
+evaluation_metrics: [f1_macro, accuracy, precision_macro, recall_macro]
+save_models: true
+generate_report: true

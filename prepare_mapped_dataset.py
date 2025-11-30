@@ -5,8 +5,9 @@
     python prepare_mapped_dataset.py
 """
 
-from data_loaders import BigOBenchDataset, ComplexityMapper
-from data_loaders.loaders import LocalLoader, DatasetWriter, DatasetSplitter
+from data_loaders.loaders import ComplexityMapper
+from data_loaders.loaders.loaders import LocalLoader
+from data_loaders.loaders.storage import DatasetWriter, DatasetSplitter
 from pathlib import Path
 import logging
 

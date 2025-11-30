@@ -1,0 +1,61 @@
+name: "re-train_base_models"
+description: "Re-training base models for stacking with cache"
+
+data:
+  train_path: "data/bigobench_mapped/train.jsonl"
+  val_path: "data/bigobench_mapped/val.jsonl"
+  test_path: "data/bigobench_mapped/test.jsonl"
+  
+  # ОБЯЗАТЕЛЬНО: Тот же кэш, что и для OvR
+  feature_cache:
+    enabled: true
+    cache_dir: "data/feature_cache"
+    cache_key: "hybrid_80k"
+    
+  preprocessing:
+    min_code_length: 10
+    split_limits: {train: 80000, val: 10000, test: 10000}
+  
+  features:
+    type: "hybrid"
+
+models:
+  # 1. CatBoost (Multiclass)
+  - name: "catboost_hybrid"
+    type: "catboost"
+    params:
+      task_type: "GPU"
+      devices: "0"
+      iterations: 1000
+      depth: 6
+      learning_rate: 0.1
+      auto_class_weights: "Balanced"
+      
+  # 2. XGBoost
+  - name: "xgboost_hybrid"
+    type: "xgboost"
+    params:
+      tree_method: "hist"
+      device: "cuda"
+      n_estimators: 1000
+      max_depth: 6
+      learning_rate: 0.1
+      # sample_weight передается автоматически пайплайном, здесь не нужен параметр
+      
+  # 3. LightGBM
+  - name: "lgbm_hybrid"
+    type: "lightgbm"
+    params:
+      device: "gpu"
+      n_estimators: 1000
+      max_depth: 6
+      learning_rate: 0.1
+      class_weight: "balanced"
+      verbose: -1
+
+optimization:
+  enabled: false # Обойдемся без Optuna для базы, дефолты неплохие
+
+evaluation_metrics: [f1_macro, accuracy]
+save_models: true
+generate_report: false

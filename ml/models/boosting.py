@@ -6,146 +6,97 @@ import numpy as np
 from typing import Dict, Any, Optional
 from ml.core.base_model import BaseModel
 
-
 class BoostingModel(BaseModel):
     """
     Универсальная обертка для CatBoost, XGBoost, LightGBM.
-    Тип модели определяется параметром boosting_type.
     """
     
     SUPPORTED_TYPES = ['catboost', 'xgboost', 'lightgbm']
     
-    def __init__(self, params: Optional[Dict[str, Any]] = None):
-        super().__init__(params)
-        self.boosting_type = self.params.pop('boosting_type', 'catboost')
+    def __init__(self, params: Optional[Dict[str, Any]] = None, **kwargs):
+        super().__init__(params, **kwargs)
+        
+        self.boosting_type = self.params.get('boosting_type', 'catboost')
         
         if self.boosting_type not in self.SUPPORTED_TYPES:
-            raise ValueError(
-                f"Unknown boosting_type: {self.boosting_type}. "
-                f"Supported: {self.SUPPORTED_TYPES}"
-            )
+            raise ValueError(f"Unknown boosting_type: {self.boosting_type}")
         
         self.model = self._create_model()
     
     def _create_model(self):
-        """Создание модели по типу"""
-        # Копируем параметры, чтобы не менять исходный словарь
-        params = self.params.copy()
-        
-        # Убираем boosting_type, так как он не нужен конструктору модели
-        params.pop('boosting_type', None)
+        """Создание модели и передача параметров в конструктор"""
+        # Копируем параметры, чтобы не менять оригинал
+        model_params = self.params.copy()
+        model_params.pop('boosting_type', None)
         
         if self.boosting_type == 'catboost':
             from catboost import CatBoostClassifier
-            # Если verbose не задан в конфиге, ставим False по умолчанию
-            if 'verbose' not in params:
-                params['verbose'] = False
-            return CatBoostClassifier(**params)
+            if 'verbose' not in model_params:
+                model_params['verbose'] = False
+            return CatBoostClassifier(**model_params)
         
         elif self.boosting_type == 'xgboost':
             from xgboost import XGBClassifier
-            # Для XGBoost verbosity=0 отключает вывод
-            if 'verbosity' not in params:
-                params['verbosity'] = 0
-            return XGBClassifier(**params)
+            if 'verbosity' not in model_params:
+                model_params['verbosity'] = 0
+            return XGBClassifier(**model_params)
         
         elif self.boosting_type == 'lightgbm':
             from lightgbm import LGBMClassifier
-            # Для LightGBM verbose=-1 отключает вывод
-            if 'verbose' not in params:
-                params['verbose'] = -1
-            return LGBMClassifier(**params)
+            if 'verbose' not in model_params:
+                model_params['verbose'] = -1
+            return LGBMClassifier(**model_params)
 
-    
     def fit(self, X: np.ndarray, y: np.ndarray, eval_set=None) -> 'BoostingModel':
-        """Обучение модели"""
+        """
+        Обучение модели с правильной обработкой eval_set.
+        """
         fit_params = {}
-
-            # Вычисляем sample_weight для XGBoost
-        if self.boosting_type == 'xgboost':
-            from sklearn.utils.class_weight import compute_sample_weight
-            sample_weights = compute_sample_weight(
-                class_weight='balanced',
-                y=y
-            )
-            fit_params['sample_weight'] = sample_weights
         
-        # Поддержка eval_set для бустингов
+        # Обработка eval_set в зависимости от библиотеки
         if eval_set is not None:
             if self.boosting_type == 'catboost':
                 fit_params['eval_set'] = eval_set
-                fit_params['early_stopping_rounds'] = 100
-                fit_params['use_best_model'] = True
-                # CatBoost: eval_metric для f1_macro
-                if 'eval_metric' not in self.params:
-                    fit_params['eval_metric'] = 'TotalF1:average=Macro'
-            
-            elif self.boosting_type == 'xgboost':
+            else:
+                # XGBoost и LightGBM требуют список кортежей [(X, y)]
                 fit_params['eval_set'] = [eval_set]
-                fit_params['early_stopping_rounds'] = 100
+                
+            # Для XGBoost нужно явно включить verbose, чтобы видеть прогресс (опционально)
+            if self.boosting_type == 'xgboost':
                 fit_params['verbose'] = False
-                # XGBoost не поддерживает f1_macro напрямую, используем logloss
-            
-            elif self.boosting_type == 'lightgbm':
-                fit_params['eval_set'] = [eval_set]
-                # LightGBM: используем callback для early stopping
-                from lightgbm import early_stopping, log_evaluation
-                fit_params['callbacks'] = [
-                    early_stopping(stopping_rounds=100, verbose=False),
-                    log_evaluation(period=0)  # отключаем вывод
-                ]
 
-        
+        # ВАЖНО: Мы НЕ передаем self.params в fit, так как они уже в конструкторе!
         self.model.fit(X, y, **fit_params)
+        
         self.is_fitted = True
         return self
-
     
     def predict(self, X: np.ndarray) -> np.ndarray:
-        """Предсказание классов"""
-        if not self.is_fitted:
-            raise RuntimeError("Model must be fitted before predict")
         return self.model.predict(X)
     
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
-        """Предсказание вероятностей"""
-        if not self.is_fitted:
-            raise RuntimeError("Model must be fitted before predict_proba")
         return self.model.predict_proba(X)
     
     def get_feature_importance(self) -> np.ndarray:
-        """Получение важности признаков"""
-        if not self.is_fitted:
-            raise RuntimeError("Model must be fitted before get_feature_importance")
-        
         if self.boosting_type == 'catboost':
-            return np.array(self.model.get_feature_importance())
-        else:
+            return self.model.get_feature_importance()
+        elif self.boosting_type == 'xgboost':
             return self.model.feature_importances_
+        elif self.boosting_type == 'lightgbm':
+            return self.model.feature_importances_
+        return np.array([])
     
     def save(self, path: str) -> None:
-        """Сохранение модели"""
-        if not self.is_fitted:
-            raise RuntimeError("Model must be fitted before saving")
-        
-        if self.boosting_type == 'catboost':
-            self.model.save_model(path)
-        else:
-            import joblib
-            joblib.dump(self.model, path)
+        import joblib
+        # Для CatBoost лучше использовать встроенный save_model, но joblib универсальнее для враппера
+        joblib.dump(self.model, path)
     
     def load(self, path: str) -> 'BoostingModel':
-        """Загрузка модели"""
-        if self.boosting_type == 'catboost':
-            from catboost import CatBoostClassifier
-            self.model = CatBoostClassifier()
-            self.model.load_model(path)
-        else:
-            import joblib
-            self.model = joblib.load(path)
-        
+        import joblib
+        self.model = joblib.load(path)
         self.is_fitted = True
         return self
+
 
 
 # Регистрация моделей в реестре

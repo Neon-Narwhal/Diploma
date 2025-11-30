@@ -63,15 +63,15 @@ class MLPipeline:
         y_train: np.ndarray,
         X_test: Optional[np.ndarray] = None,
         y_test: Optional[np.ndarray] = None,
-        X_val: Optional[np.ndarray] = None,    # Добавлен аргумент
-        y_val: Optional[np.ndarray] = None,    # Добавлен аргумент
+        X_val: Optional[np.ndarray] = None,
+        y_val: Optional[np.ndarray] = None,
         code_samples_train: Optional[List[str]] = None,
         code_samples_test: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Запуск полного pipeline.
         """
-        # 1. Feature engineering (если нужно)
+        # 1. Feature engineering
         if code_samples_train is not None:
             X_train, X_test = self._prepare_features(
                 code_samples_train,
@@ -79,41 +79,52 @@ class MLPipeline:
                 y_train,
             )
         
-        # 2. Оптимизация гиперпараметров (если нужно)
-        if self.optimization_config:
-            # Используем val сет для оптимизации, если есть
-            self._optimize_hyperparameters(X_train, y_train, X_val, y_val)
+        # 2. Оптимизация гиперпараметров
+        # Вызываем метод, который обновит self.model_config.params
+        self._optimize_hyperparameters(X_train, y_train, X_val, y_val)
         
-        # 3. Обучение модели
+        # 3. Обучение финальной модели
+        print(f"\nОбучение финальной модели с параметрами:")
+        print(f"{self.model_config.params}")  # DEBUG: Проверяем, что параметры обновились
+
+        # Создаем НОВЫЙ экземпляр модели с ОБНОВЛЕННЫМИ параметрами
+        from ml.core.model_factory import ModelFactory
+        self.model = ModelFactory.create(self.model_config)
+        
+        # Cross-validation results (если включено)
         if self.cv_config and self.cv_config.get('enabled', False):
-            # С cross-validation (если включено явно)
             cv_results = self._train_with_cv(X_train, y_train)
             self.results['cv_results'] = cv_results
         
-        # Финальное обучение на train
-        # Если есть val сет, используем его для early stopping (если модель поддерживает)
-        self.model = ModelFactory.create(self.model_config)
-        
-        # Пробуем передать eval_set, если модель это поддерживает (как CatBoost)
+        # Финальный fit
         try:
+            # Пытаемся передать eval_set (для CatBoost/LGBM/XGBoost)
             if X_val is not None and y_val is not None:
-                self.model.fit(X_train, y_train, eval_set=(X_val, y_val))
+                # Для некоторых моделей (OvR) eval_set не поддерживается и вызовет TypeError
+                # Но мы перехватим его ниже, если это kwarg error
+                # Однако OvR не принимает eval_set в принципе, так что лучше проверить тип
+                
+                # Костыль: OvR модели не поддерживают eval_set в fit
+                if 'ovr' in self.model_config.type:
+                     self.model.fit(X_train, y_train)
+                else:
+                     self.model.fit(X_train, y_train, eval_set=(X_val, y_val))
             else:
                 self.model.fit(X_train, y_train)
-        except TypeError:
-            # Если eval_set не поддерживается, обучаем просто так
+        except TypeError as e:
+            print(f"Warning: fit() with eval_set failed ({e}), retrying without eval_set...")
             self.model.fit(X_train, y_train)
         
         # 4. Оценка на train
         train_metrics = self._evaluate(X_train, y_train, prefix='train')
         self.results['train_metrics'] = train_metrics
         
-        # 5. Оценка на val (если есть)
+        # 5. Оценка на val
         if X_val is not None and y_val is not None:
             val_metrics = self._evaluate(X_val, y_val, prefix='val')
             self.results['val_metrics'] = val_metrics
         
-        # 6. Оценка на test (если есть)
+        # 6. Оценка на test
         if X_test is not None and y_test is not None:
             test_metrics = self._evaluate(X_test, y_test, prefix='test')
             self.results['test_metrics'] = test_metrics
@@ -152,7 +163,8 @@ class MLPipeline:
         y_val: Optional[np.ndarray] = None
     ):
         """Оптимизация гиперпараметров"""
-        if not self.optimization_config:
+        # Проверка enabled
+        if not self.optimization_config or not self.optimization_config.get('enabled', False):
             return
 
         print(f"Запуск оптимизации гиперпараметров ({self.optimization_config.get('n_trials', 10)} trials)...")
@@ -162,28 +174,28 @@ class MLPipeline:
         optimizer = OptunaOptimizer(
             model_config=self.model_config,
             optimization_config=self.optimization_config,
-            cv_config=self.cv_config  # Используется, если нет X_val
+            cv_config=self.cv_config
         )
         
-        # Если есть val сет, используем его
-        # Если нет - optimizer сам решит использовать CV (если реализовано)
+        # Optuna возвращает словарь лучших параметров
         best_params, best_value = optimizer.optimize(
             X_train, y_train, 
             X_val=X_val, 
             y_val=y_val
         )
         
-        # Обновляем параметры модели
+        print(f"✓ Оптимизация завершена. Best score: {best_value:.4f}")
+        print(f"  Best params: {best_params}")
+
+        # Обновляем параметры модели В ТЕКУЩЕМ конфиге
         self.model_config.params.update(best_params)
         
-        # Сохраняем результаты
+        # Сохраняем результаты для отчета
         self.results['optimization'] = {
             'best_params': best_params,
-            'best_value': best_value,
+            'best_value': float(best_value),
             'n_trials': self.optimization_config.get('n_trials')
         }
-        
-        print(f"✓ Оптимизация завершена. Best score: {best_value:.4f}")
 
     def _train_with_cv(
         self,

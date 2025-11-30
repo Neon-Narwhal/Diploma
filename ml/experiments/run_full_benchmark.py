@@ -30,7 +30,9 @@ def run_benchmark():
     configs_to_run = [
         "ml/configs/presets/benchmark_1_ast.yaml",
         "ml/configs/presets/benchmark_2_nlp.yaml",
-        "ml/configs/presets/benchmark_3_hybrid.yaml"
+        "ml/configs/presets/benchmark_3_hybrid.yaml",
+        "ml/configs/presets/benchmark_4_ovr_hybrid.yaml",
+        "ml/configs/presets/benchmark_5_stacking_hybrid.yaml"
     ]
     
     final_summary = []
