@@ -1,137 +1,195 @@
 import sys
-import os
-import yaml
-import logging
+import copy
 from pathlib import Path
-import pandas as pd
 
-# Добавляем корень проекта в путь (на 3 уровня вверх от этого файла)
-project_root = Path(__file__).resolve().parent.parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
+# === НАСТРОЙКИ ЗАПУСКА ===
+
+# ПОСТАВЬ True, ЧТОБЫ ПРОВЕРИТЬ КОД ЗА 5 МИНУТ (на ноутбуке)
+# ПОСТАВЬ False ПЕРЕД ОТПРАВКОЙ ДРУГУ НА A100
+DEBUG_MODE = False 
+
+# =========================
+
+# Настройка путей (поднимаемся из ml/experiments/ в корень проекта)
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 from ml.configs.experiment import ExperimentConfig
-from ml.utils.data_loader import DataLoader
 from ml.experiments.runner import ExperimentRunner
+from ml.utils.data_loader import DataLoader
 
-# Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.FileHandler("benchmark.log"),
-        logging.StreamHandler()
+
+# === КОНФИГУРАЦИЯ ПАРАМЕТРОВ ===
+
+if DEBUG_MODE:
+    print(f"\n{'!'*40}")
+    print("!!! ВНИМАНИЕ: ЗАПУЩЕН DEBUG РЕЖИМ !!!")
+    print("Обучение пройдет на микро-датасете для проверки кода.")
+    print(f"{'!'*40}\n")
+    
+    # Легкие параметры для теста
+    GLOBAL_PARAMS_CB = {"iterations": 10, "depth": 2, "learning_rate": 0.1, "task_type": "CPU", "verbose": True}
+    GLOBAL_PARAMS_XGB = {"n_estimators": 10, "max_depth": 2, "learning_rate": 0.1, "device": "cpu"}
+    GLOBAL_PARAMS_LGBM = {"n_estimators": 10, "max_depth": 2, "learning_rate": 0.1, "device": "cpu", "verbose": -1}
+    
+    SPLIT_LIMITS = {"train": 200, "val": 50, "test": 50} # Микро-лимиты
+    STACKING_CV = 2
+    OVR_ITERATIONS = 5
+
+else:
+    # ТЯЖЕЛЫЕ ПАРАМЕТРЫ ДЛЯ A100
+    # Используем 0:1, предполагая 2 GPU. Если одна — поменяй на "0"
+    GLOBAL_PARAMS_CB = {
+        "task_type": "GPU", "devices": "0:1", 
+        "iterations": 5000, "depth": 8, "learning_rate": 0.03, 
+        "early_stopping_rounds": 300, "verbose": 500
+    }
+    GLOBAL_PARAMS_XGB = {
+        "tree_method": "hist", "device": "cuda", 
+        "n_estimators": 5000, "max_depth": 8, "learning_rate": 0.03,
+        "early_stopping_rounds": 300
+    }
+    GLOBAL_PARAMS_LGBM = {
+        "device": "gpu", 
+        "n_estimators": 5000, "max_depth": 8, "learning_rate": 0.03,
+        "early_stopping_rounds": 300, "verbose": -1
+    }
+    
+    SPLIT_LIMITS = None # Грузим всё (100k+)
+    STACKING_CV = 5
+    OVR_ITERATIONS = 3000
+
+
+# Базовая структура конфига
+BASE_CONFIG = {
+    "data": {
+        "train_path": "data/bigobench_mapped/train.jsonl",
+        "val_path": "data/bigobench_mapped/val.jsonl",
+        "test_path": "data/bigobench_mapped/test.jsonl",
+        "preprocessing": {
+            "min_code_length": 10,
+            "split_limits": SPLIT_LIMITS
+        }
+    },
+    "optimization": {"enabled": False}, # Optuna отключена
+    "evaluation_metrics": ["f1_macro", "accuracy", "precision_macro", "recall_macro"],
+    "save_models": True,
+    "generate_report": True
+}
+
+def run_experiment(name, feature_type, models_list, description):
+    print(f"\n\n{'='*80}")
+    print(f"ЗАПУСК: {name}")
+    print(f"{description}")
+    print(f"{'='*80}\n")
+    
+    config_dict = copy.deepcopy(BASE_CONFIG)
+    config_dict["name"] = name
+    config_dict["description"] = description
+    config_dict["features"] = {"type": feature_type}
+    
+    # Кэширование
+    cache_key = f"debug_{feature_type}" if DEBUG_MODE else f"full_a100_{feature_type}"
+    config_dict["data"]["feature_cache"] = {
+        "enabled": True,
+        "cache_dir": "data/feature_cache",
+        "cache_key": cache_key
+    }
+    
+    config_dict["models"] = models_list
+    
+    # Создаем конфиг
+    config = ExperimentConfig(**config_dict)
+    
+    # === ВАЖНО: ЗАГРУЖАЕМ ДАННЫЕ ===
+    from ml.utils.data_loader import DataLoader
+    print("Загрузка данных...")
+    loader = DataLoader.from_config(config)
+    data = loader.load()
+    print(f"  Train: {data.X_train.shape}, Val: {data.X_val.shape}, Test: {data.X_test.shape}")
+    # ================================
+    
+    # Запускаем эксперименты
+    runner = ExperimentRunner(config)
+    runner.run(data)  # <--- Передаем данные сюда
+
+
+def main():
+    # 1. AST
+    run_experiment(
+        "1_full_ast", "ast",
+        [   # models_list идет ТРЕТЬИМ
+            {"name": "cb_ast", "type": "catboost", "params": GLOBAL_PARAMS_CB},
+            {"name": "xgb_ast", "type": "xgboost", "params": GLOBAL_PARAMS_XGB}
+        ],
+        "Сравнение на AST признаках" # description идет ЧЕТВЕРТЫМ
+    )
+
+    # 2. NLP (Jina)
+    run_experiment(
+        "2_full_nlp", "jina",
+        [
+            {"name": "cb_nlp", "type": "catboost", "params": GLOBAL_PARAMS_CB},
+            {"name": "xgb_nlp", "type": "xgboost", "params": GLOBAL_PARAMS_XGB}
+        ],
+        "Сравнение на Embeddings"
+    )
+
+    # 3. Hybrid (Base for Stacking)
+    run_experiment(
+        "3_full_hybrid", "hybrid",
+        [
+            {"name": "cb_hybrid", "type": "catboost", "params": GLOBAL_PARAMS_CB},
+            {"name": "xgb_hybrid", "type": "xgboost", "params": GLOBAL_PARAMS_XGB},
+            {"name": "lgbm_hybrid", "type": "lightgbm", "params": GLOBAL_PARAMS_LGBM}
+        ],
+        "Гибридные признаки (база для стекинга)"
+    )
+
+    # 4. OvR (Hybrid)
+    ovr_params = copy.deepcopy(GLOBAL_PARAMS_CB)
+    if not DEBUG_MODE:
+        ovr_params["iterations"] = OVR_ITERATIONS
+        ovr_params["depth"] = 6 
+    
+    run_experiment(
+        "4_full_ovr_hybrid", "hybrid",
+        [
+            {"name": "ovr_cb_hybrid", "type": "ovr_catboost", "params": ovr_params}
+        ],
+        "One-vs-Rest подход"
+    )
+
+    # 5. Stacking
+    pretrained_paths = [
+        "ml/outputs/models/cb_hybrid.pkl",
+        "ml/outputs/models/xgb_hybrid.pkl",
+        "ml/outputs/models/lgbm_hybrid.pkl",
+        "ml/outputs/models/ovr_cb_hybrid.pkl"
     ]
-)
-logger = logging.getLogger(__name__)
+    
+    stacking_params = {
+        "meta_model": "ridge",
+        "cv": STACKING_CV,
+        "pretrained_models": pretrained_paths
+    }
+    
+    run_experiment(
+        "5_full_stacking", "hybrid",
+        [
+            {"name": "mega_stacking_full", "type": "stacking", "params": stacking_params}
+        ],
+        "Финальный ансамбль (Stacking)"
+    )
 
-def run_benchmark():
-    # Список файлов конфигурации для бенчмарка
-    configs_to_run = [
-        "ml/configs/presets/benchmark_1_ast.yaml",
-        "ml/configs/presets/benchmark_2_nlp.yaml",
-        "ml/configs/presets/benchmark_3_hybrid.yaml",
-        "ml/configs/presets/benchmark_4_ovr_hybrid.yaml",
-        "ml/configs/presets/benchmark_5_stacking_hybrid.yaml"
-    ]
     
-    final_summary = []
-    
-    print("\n" + "="*80)
-    print("ЗАПУСК ПОЛНОГО БЕНЧМАРКА (3 ТИПА ПРИЗНАКОВ x 3 МОДЕЛИ)")
-    print("="*80 + "\n")
-    
-    for config_path in configs_to_run:
-        full_path = project_root / config_path
-        
-        if not full_path.exists():
-            logger.error(f"Config not found: {config_path}")
-            continue
-            
-        logger.info(f"\n{'='*60}\nSTARTING BENCHMARK GROUP: {config_path}\n{'='*60}")
-        
-        try:
-            # 1. Загружаем конфиг через метод from_yaml
-            config = ExperimentConfig.from_yaml(str(full_path))
-            
-            # 2. Загружаем данные (препроцессинг зависит от конфига features!)
-            logger.info("Loading and processing data...")
-            loader = DataLoader.from_config(config)
-            data = loader.load()
-            
-            # 3. Запускаем Runner
-            # Runner сам создаст MLPipeline и переберет все модели из списка 'models' в конфиге
-            runner = ExperimentRunner(config)
-            run_results = runner.run(data)
-            
-            # 4. Собираем результаты для итоговой таблицы
-            for model_name, res in run_results.items():
-                score = 0
-                
-                # Пытаемся найти метрику F1 (сначала на тесте, потом на валидации)
-                if 'test_metrics' in res and res['test_metrics']:
-                    score = res['test_metrics'].get('f1_macro', 0)
-                elif 'val_metrics' in res and res['val_metrics']:
-                    score = res['val_metrics'].get('f1_macro', 0)
-                
-                # --- БЕЗОПАСНОЕ ОПРЕДЕЛЕНИЕ ТИПА ПРИЗНАКОВ ---
-                feat_type = "unknown"
-                
-                # Проверяем config.features (это словарь или None)
-                if config.features and isinstance(config.features, dict):
-                    feat_type = config.features.get('type', 'unknown')
-                
-                # Если не нашли, ищем в config.data['features']
-                elif hasattr(config, 'data'):
-                    # config.data может быть словарем
-                    if isinstance(config.data, dict):
-                        feats = config.data.get('features', {})
-                        if isinstance(feats, dict):
-                            feat_type = feats.get('type', feat_type)
-                    # Или объектом (если вдруг структура поменялась)
-                    elif hasattr(config.data, 'features'):
-                         f = config.data.features
-                         if isinstance(f, dict):
-                             feat_type = f.get('type', feat_type)
-                # ---------------------------------------------
-                
-                final_summary.append({
-                    'Feature Type': feat_type,
-                    'Model': model_name,
-                    'F1 Score': score,
-                    'Config': config_path
-                })
-                
-                logger.info(f"  >>> {feat_type} | {model_name}: F1 = {score:.4f}")
-                
-            logger.info(f"✓ Group {config_path} finished successfully.")
-                
-        except Exception as e:
-            logger.error(f"❌ Failed benchmark group {config_path}: {e}", exc_info=True)
-            # Не падаем, идем к следующему конфигу
-            continue
-
-    # 5. Выводим итоговую сводную таблицу
-    logger.info("\n" + "="*60)
-    logger.info("FINAL BENCHMARK RESULTS")
-    logger.info("="*60)
-    
-    if final_summary:
-        df = pd.DataFrame(final_summary)
-        # Сортируем: сначала по типу фичей, потом по скору
-        df = df.sort_values(by=['Feature Type', 'F1 Score'], ascending=[True, False])
-        
-        table_str = df.to_string(index=False)
-        print("\n" + table_str)
-        logger.info("\n" + table_str)
-        
-        # Сохраняем в CSV на всякий случай
-        output_csv = project_root / "ml" / "outputs" / "reports" / "full_benchmark_results.csv"
-        output_csv.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(output_csv, index=False)
-        logger.info(f"Results saved to {output_csv}")
+    print(f"\n\n{'='*80}")
+    print("ВСЕ ЭКСПЕРИМЕНТЫ ЗАВЕРШЕНЫ УСПЕШНО")
+    if DEBUG_MODE:
+        print("Это был ТЕСТОВЫЙ прогон. Теперь поставь DEBUG_MODE = False и отправляй другу!")
     else:
-        logger.warning("No results gathered.")
+        print("Результаты ищи в ml/outputs/reports/ и ml/outputs/plots/")
+    print(f"{'='*80}\n")
 
 if __name__ == "__main__":
-    run_benchmark()
+    main()

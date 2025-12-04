@@ -102,9 +102,16 @@ class DataLoader:
                 print(f"Кэш не найден, извлекаем признаки...")
         
         # Читаем настройки лимитов
-        limits = self.config.get('preprocessing', {}).get('split_limits', {})
+        limits = self.config.get('preprocessing', {}).get('split_limits')
+        
+        # ЗАЩИТА ОТ None
+        if limits is None:
+            limits = {}
+            
+        # Fallback на старый параметр для совместимости
         global_limit = self.config.get('preprocessing', {}).get('max_samples_per_split')
         
+        # Определяем лимиты для каждого сплита
         lim_train = limits.get('train', global_limit)
         lim_val = limits.get('val', global_limit)
         lim_test = limits.get('test', global_limit)
