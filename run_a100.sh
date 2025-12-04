@@ -4,7 +4,7 @@
 set -e
 
 echo "============================================================"
-echo "🚀 ЗАПУСК ОКРУЖЕНИЯ ДЛЯ A100 BENCHMARK"
+echo "🚀 ЗАПУСК DIPLOMA BENCHMARK (A100)"
 echo "============================================================"
 
 # 1. Проверка/Установка uv
@@ -16,44 +16,38 @@ else
     echo "✅ uv уже установлен"
 fi
 
-# 2. Создание виртуального окружения и установка зависимостей
-echo "📦 Установка зависимостей проекта..."
+# 2. Синхронизация окружения
+echo "📦 Установка зависимостей..."
 uv sync
 
-# 3. Проверка и скачивание данных
-# Проверяем, есть ли данные. Если нет — запускаем скрипт скачивания.
-# Предполагаем, что у тебя есть скрипт для скачивания (например, data/download.sh или python скрипт)
-# Если его нет, этот шаг можно закомментировать или добавить команду curl/wget
-DATA_FILE="data/bigobench_mapped/train.jsonl"
+# 3. Шаг 1: Получение сырых данных (BigOBench)
+RAW_DATA_DIR="data/bigobench"
 
-if [ ! -f "$DATA_FILE" ]; then
-    echo "⬇️ Данные не найдены. Скачиваю Big-O Bench..."
-    # Создаем папки
-    mkdir -p data/bigobench_mapped
-    
-    # ВСТАВЬ СЮДА КОМАНДУ СКАЧИВАНИЯ ИЛИ ЗАПУСК СКРИПТА
-    # Например, если есть scripts/download_data.py:
-    # uv run python scripts/download_data.py
-    
-    # ИЛИ (если нужно просто скачать архив):
-    # wget https://.../dataset.zip -O data/dataset.zip
-    # unzip data/dataset.zip -d data/
-    
-    echo "⚠️ ВНИМАНИЕ: В скрипте run_a100.sh нужно раскомментировать логику скачивания данных!"
+if [ ! -d "$RAW_DATA_DIR" ]; then
+    echo "⚙️ [1/2] Запуск prepare_dataset.py (скачивание исходных данных)..."
+    uv run python prepare_dataset.py
+    echo "✅ Исходные данные готовы."
 else
-    echo "✅ Данные уже на месте"
+    echo "✅ Исходные данные уже есть."
 fi
 
-# 4. Запуск бенчмарка
-echo "🔥 ЗАПУСК ОБУЧЕНИЯ НА A100..."
-echo "Логи будут писаться в файл: training_a100.log"
-echo "Можешь отключиться от SSH, процесс запущен в фоне (nohup)."
+# 4. Шаг 2: Маппинг классов
+MAPPED_DATA_FILE="data/bigobench_mapped/train.jsonl"
 
-# Используем nohup, чтобы обучение не прервалось при разрыве SSH
-# uv run запускает python внутри виртуального окружения
+if [ ! -f "$MAPPED_DATA_FILE" ]; then
+    echo "⚙️ [2/2] Запуск prepare_mapped_dataset.py (маппинг классов)..."
+    uv run python prepare_mapped_dataset.py
+    echo "✅ Датасет для обучения готов."
+else
+    echo "✅ Маппинг уже выполнен."
+fi
+
+# 5. Запуск бенчмарка
+echo "🔥 ЗАПУСК ОБУЧЕНИЯ..."
+echo "Логи пишутся в: training_a100.log"
+
 nohup uv run python ml/experiments/run_full_benchmark.py > training_a100.log 2>&1 &
 
-# Выводим PID процесса
 PID=$!
 echo "✅ Процесс запущен! PID: $PID"
-echo "Чтобы следить за логами, введи: tail -f training_a100.log"
+echo "Следить за логами: tail -f training_a100.log"
