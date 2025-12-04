@@ -1,0 +1,36 @@
+name: "ast_test"
+description: "Quick test with 10 samples"
+
+data:
+  train_path: "data/bigobench_mapped/train.jsonl"
+  val_path: "data/bigobench_mapped/val.jsonl"
+  test_path: "data/bigobench_mapped/test.jsonl"
+  code_field: "code"
+  label_field: "time_complexity_mapped"
+  
+  preprocessing:
+    min_code_length: 10
+    max_samples_per_split: 10
+
+processing:
+  batch_size: 5
+  parallel: false
+  n_workers: 1
+  timeout_per_sample: 5
+  skip_on_error: true
+
+analyzers:
+  - name: "ast_basic_test"
+    type: "basic"
+    params:
+      max_depth: 100
+      track_all_nodes: true
+
+evaluation_metrics:
+  - "f1_macro"
+  - "recall_macro"
+  - "accuracy"
+
+save_results: true
+output_path: "outputs/ast_analysis/test_results.jsonl"
+generate_report: false

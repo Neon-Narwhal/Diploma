@@ -220,3 +220,4 @@ mlruns/
 logs/
 ml/outputs/
 catboost_info/
+outputs/

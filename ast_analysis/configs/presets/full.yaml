@@ -1,0 +1,51 @@
+name: "ast_full_analysis"
+description: "Полный AST анализ со всеми анализаторами"
+
+data:
+  train_path: "data/bigobench_mapped/train.jsonl"
+  val_path: "data/bigobench_mapped/val.jsonl"
+  test_path: "data/bigobench_mapped/test.jsonl"
+  code_field: "code"
+  label_field: "time_complexity_mapped"
+  
+  preprocessing:
+    min_code_length: 10
+
+processing:
+  batch_size: 50
+  parallel: true
+  n_workers: 8
+  timeout_per_sample: 10
+  skip_on_error: true
+
+analyzers:
+  - name: "ast_basic"
+    type: "basic"
+    params:
+      max_depth: 100
+      track_all_nodes: true
+  
+  - name: "ast_advanced"
+    type: "advanced"
+    params:
+      analyze_recursion: true
+      analyze_scopes: true
+      track_function_calls: true
+  
+  - name: "ast_patterns"
+    type: "patterns"
+    params:
+      detect_loops: true
+      detect_recursion: true
+      track_nesting: true
+
+evaluation_metrics:
+  - "success_rate"
+  - "parsing_success_rate"
+  - "avg_processing_time"
+  - "feature_coverage"
+  - "throughput"
+
+save_results: true
+output_path: "outputs/ast_full_results.jsonl"
+generate_report: true
