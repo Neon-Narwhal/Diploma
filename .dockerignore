@@ -1,0 +1,10 @@
+.git
+.venv
+.idea
+__pycache__
+*.pyc
+ml/outputs
+mlruns
+data
+*.tar.gz
+training_a100.log

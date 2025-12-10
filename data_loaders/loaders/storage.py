@@ -67,7 +67,7 @@ class DatasetSplitter:
         assert abs(train_ratio + val_ratio + test_ratio - 1.0) < 0.01
         
         # Извлекаем labels для стратификации
-        labels = [s['time_complexity_mapped'] for s in samples]
+        labels = [s.get('time_complexity_mapped', s.get('time_complexity')) for s in samples]
         
         # Логируем распределение ДО сплита
         logger.info("Распределение классов BEFORE split:")

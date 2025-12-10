@@ -108,13 +108,18 @@ class DatasetJoiner:
             
             solution_data = solutions_map[solution_id]
             
+            # === ИСПРАВЛЕНИЕ: Берем из _inferred полей ===
+            time_comp = item.get('time_complexity') or item.get('time_complexity_inferred')
+            space_comp = item.get('space_complexity') or item.get('space_complexity_inferred')
+            # =============================================
+            
             sample = {
                 'solution_id': solution_id,
                 'problem_id': item['problem_id'],
                 'problem_name': item.get('problem_name', solution_data['problem_name']),
                 'code': solution_data['code'],
-                'time_complexity': item.get('time_complexity'),
-                'space_complexity': item.get('space_complexity'),
+                'time_complexity': time_comp,   # Теперь тут будет значение!
+                'space_complexity': space_comp, # И тут тоже
                 'time_curve_coefficient': item.get('time_curve_coefficient'),
                 'space_curve_coefficient': item.get('space_curve_coefficient')
             }
